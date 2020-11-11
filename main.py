@@ -8,7 +8,6 @@ Created Time: 2020-11-06 16:06:47
 
 Description: 将数据从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 
-因为实例方法不能被pickle
 """
 
 import json
@@ -21,7 +20,6 @@ import paho.mqtt.client as Mqtt
 import toml
 
 #  from lib.log_wrapper import setupLogging
-#  from lib.mqtt_wrapper import MqttWrapper
 from lib.timescale_wrapper import TimescaleWrapper
 
 
@@ -195,6 +193,7 @@ class Wizard(object):
         # 从MQTT订阅信息
         self.subMessage()
 
+        print('线程数：{}'.format(self.threads))
         for serial in range(0, self.threads):
             task = Thread(target=self.persistence, args=(serial, ))
             task.start()
@@ -207,13 +206,10 @@ class Wizard(object):
         :serial: 进程序列号
 
         """
-        print('子进程ID：{}'.format(os.getpid()))
         while True:
             data_bytes = self.data_queue.get()
             size = self.data_queue.qsize()
-            print('Thread {} got data, current long(queue) = {}'.format(
-                serial, size))
-            if size >= 500:
+            if size >= 2000:
                 break
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
@@ -221,11 +217,12 @@ class Wizard(object):
             self.timescale.insertData(data_dict)
             time.sleep(0.01)  # 阻塞0.01~0.02秒效果更好
             o = time.time()
-            print('    >>> 已存入数据库，耗时：{}'.format(o - n))
+            print(("Thread {} got data, long(queue) = {} "
+                   "<-> 入库耗时：{}").format(serial, size, o - n))
 
 
 if __name__ == "__main__":
-    print('父进程ID：{}'.format(os.getpid()))
+    print('进程ID：{}'.format(os.getpid()))
     confile = './conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)

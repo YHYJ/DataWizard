@@ -39,9 +39,9 @@ threads = 30      # 为0则使用CPU核心数
         dbname = 'postgres'     # 要使用的数据库名，默认postgres
 
         [storage.timescale.table]
-            # 预定义各个表的timestamp、id字段名
-            time_column_name = 'timestamp'  # Hypertable的timestamp列名
-            id_column_name = 'deviceid'     # Table的deviceid列名
+            # 预定义各个表的timestamp、id列名
+            column_time_name = 'timestamp'  # Hypertable的时间戳列名
+            column_id_name = 'deviceid'     # Table的ID列名
 
 
 [log]
