@@ -1,42 +1,42 @@
 # 线程数
-threads = 30      # 为0则使用CPU核心数
+threads = 30                                # 为0则使用CPU核心数
 
 [source]
     # 数据来源位置
-    data_source = 'mqtt'
+    data_source = 'mqtt'                    # 数据来源，可选值：mqtt
 
     [source.mqtt]
-        host = '127.0.0.1'          # MQTT broker服务地址
-        port = 1883                 # MQTT broker服务地址
-        username = ''               # 用户名
-        password = ''               # 密码
-        client_id = ''              # 客户端ID，为空则使用随机值
-        topics = ['test_topic']     # 发布/订阅的主题
-        qos = 1                     # 服务质量，可选值为：0, 1, 2
-        keepalive = 60              # 心跳包发送时间间隔
+        host = '127.0.0.1'                  # MQTT broker服务地址
+        port = 1883                         # MQTT broker服务地址
+        username = ''                       # 用户名
+        password = ''                       # 密码
+        client_id = ''                      # 客户端ID，为空则使用随机值
+        topics = ['test_topic']             # 发布/订阅的主题
+        qos = 1                             # 服务质量，可选值为：0, 1, 2
+        keepalive = 60                      # 心跳包发送时间间隔
 
 
 [storage]
     # 数据存储位置
-    data_storage = 'timescale'
+    data_storage = 'timescale'              # 数据持久化方案，可选值：timescale
 
     [storage.pool]
         # 数据库连接池配置信息，不可作为'data_storage'的值
-        mincached=10        # 池中空闲连接初始数量，default = 10
-        maxcached=0         # 池中最大空闲连接数，0或None表示池大小不受限制
-        maxshared=0         # 共享连接的最大数目，0或None表示所有连接都是专用的
-        maxconnections=0    # 通常允许的最大连接数，0或None表示不受限制
-        blocking=true       # 连接数超出最大值时的行为，True表示阻塞直到有连接可用，False表示报告错误
-        maxusage=0          # 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
-        ping=1              # 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
+        mincached=10                        # 池中空闲连接初始数量，default = 10
+        maxcached=0                         # 池中最大空闲连接数，0或None表示池大小不受限制
+        maxshared=0                         # 共享连接的最大数目，0或None表示所有连接都是专用的
+        maxconnections=0                    # 通常允许的最大连接数，0或None表示不受限制
+        blocking=true                       # 连接数超出最大值时的行为，true表示阻塞直到有连接可用，false表示报告错误
+        maxusage=0                          # 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
+        ping=1                              # 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
 
     [storage.timescale]
         # 数据库连接参数
         host = '127.0.0.1'
         port = 5432
-        user = 'postgres'           # TimescaleDB用户名
-        password = 'postgres'       # TimescaleDB密码
-        dbname = 'postgres'     # 要使用的数据库名，默认postgres
+        user = 'TODO'                       # TimescaleDB用户名
+        password = 'TODO'                   # TimescaleDB密码
+        dbname = 'postgres'                 # 要使用的数据库名，默认postgres
 
         [storage.timescale.table]
             # 预定义各个表的timestamp、id列名
@@ -46,10 +46,10 @@ threads = 30      # 为0则使用CPU核心数
 
 [log]
     console = true
-    console_level = 'DEBUG'     # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
+    console_level = 'DEBUG'                 # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
 
     file = true
-    file_level = 'DEBUG'        # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
+    file_level = 'DEBUG'                    # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
     log_file = 'logs/log.log'
     max_size = 10240000
 
