@@ -11,6 +11,7 @@ Description: 将数据从缓存(redis, mqtt ...)持久化到数据库(TimescaleD
 """
 
 import json
+import logging
 import os
 import time
 from queue import Queue
@@ -19,8 +20,10 @@ from threading import Thread
 import paho.mqtt.client as Mqtt
 import toml
 
-#  from lib.log_wrapper import setupLogging
+from lib.log_wrapper import setupLogging
 from lib.timescale_wrapper import TimescaleWrapper
+
+log = logging.getLogger("DataWizard.main")
 
 
 class Wizard(object):
@@ -31,6 +34,7 @@ class Wizard(object):
         :conf: 总配置信息
 
         """
+        setupLogging(conf['log'])
         # 数据的来源和去处
         self.data_source: str = conf['source'].get('data_source', 'mqtt')
         self.data_storage: str = conf['storage'].get('data_storage',
@@ -42,9 +46,6 @@ class Wizard(object):
         # 线程数
         self.threads: int = conf.get('threads') if conf.get(
             'threads', 0) > 0 else os.cpu_count()
-
-        # 数据库连接池配置
-        pool_conf: dict = conf['storage'].get('pool', dict())
 
         # 数据来源配置
         if self.data_source == 'mqtt':
@@ -63,14 +64,10 @@ class Wizard(object):
 
         # 数据去处配置
         if self.data_storage == 'timescale':
-            timescale_conf: dict = conf['storage'].get('timescale', dict())
-            self.timescale = TimescaleWrapper(pool_conf, timescale_conf)
+            self.timescale = TimescaleWrapper(conf)
 
     def connectMqtt(self):
-        """Connect to MQTT.
-        :returns: TODO
-
-        """
+        """Connect to MQTT."""
         self.mqtt = Mqtt.Client(client_id=self._client_id)
         self.mqtt.username_pw_set(self._username, self._password)
 
@@ -83,10 +80,10 @@ class Wizard(object):
             self.mqtt.connect(host=self._hostname,
                               port=self._port,
                               keepalive=self._keepalive)
-            #  print('{} 初始化完成'.format(self.data_source))
+            log.info("Successfully connected to {text}.".format(
+                text=self.data_source))
         except Exception as err:
-            raise err
-            #  log.error("Connection error: {}".format(err))
+            log.error("Connection error: {text}".format(text=err))
 
     def __on_connect(self,
                      client,
@@ -115,11 +112,10 @@ class Wizard(object):
 
         """
         if reasonCode == 0:
-            print('MQTT bridge connected')
-            #  log.info('MQTT bridge connected')
+            log.info('MQTT bridge connected.')
         else:
-            print('Connection error, reasonCode = {}'.format(reasonCode))
-            # log.error('Connection error, reasonCode = {}'.format(reasonCode))
+            log.error('Connection error, reasonCode = {text}.'.format(
+                text=reasonCode))
             client.disconnect()
 
     def __on_disconnect(self, client, userdata, reasonCode, properties=None):
@@ -133,8 +129,8 @@ class Wizard(object):
                      For MQTT v3.1 and v3.1.1, properties = None
 
         """
-        print("Disconnection with reasonCode = {}".format(reasonCode))
-        #  log.info("Disconnection with reasonCode = {}".format(reasonCode))
+        log.info(
+            "Disconnection with reasonCode = {text}.".format(text=reasonCode))
 
     def __on_subscribe(self,
                        client,
@@ -160,10 +156,8 @@ class Wizard(object):
             callback(client, userdata, mid, reasonCodes, properties)
 
         """
-        print('Subscribed success, mid = {} granted_qos = {} '.format(
-            mid, granted_qos))
-        # log.info('Subscribed success, mid = {} granted_qos = {} '.format(
-        #     mid, granted_qos))
+        log.info('Subscribed success, mid = {mid} granted_qos = {qos}.'.format(
+            mid=mid, qos=granted_qos))
 
     def __on_message(self, client, userdata, message):
         """called when a message has been received on a topic.
@@ -175,7 +169,7 @@ class Wizard(object):
 
         """
         msg = message.payload
-        #  print('订阅到数据：{}'.format(msg))
+        print('订阅到数据：{}'.format(msg))
         self.data_queue.put(msg, block=False)
 
     def subMessage(self):
@@ -185,19 +179,15 @@ class Wizard(object):
             for topic in self._topics:
                 self.mqtt.subscribe(topic=topic, qos=self._qos)
         except Exception as err:
-            raise err
-            #  log.error(err)
+            log.error(err)
 
     def wizard(self):
         """Main."""
-        # 从MQTT订阅信息
         self.subMessage()
 
-        print('线程数：{}'.format(self.threads))
         for serial in range(0, self.threads):
             task = Thread(target=self.persistence, args=(serial, ))
             task.start()
-            #  task.join()
 
     def persistence(self, serial):
         """数据持久化
@@ -208,8 +198,8 @@ class Wizard(object):
         """
         while True:
             data_bytes = self.data_queue.get()
-            size = self.data_queue.qsize()
-            if size >= 2000:
+            qsize = self.data_queue.qsize()
+            if qsize >= 2000:
                 break
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
@@ -217,12 +207,12 @@ class Wizard(object):
             self.timescale.insertData(data_dict)
             time.sleep(0.01)  # 阻塞0.01~0.02秒效果更好
             o = time.time()
-            print(("Thread {} got data, long(queue) = {} "
-                   "<-> 入库耗时：{}").format(serial, size, o - n))
+            log.info(("Thread {num} got data, long(queue) = {size} "
+                      "<-> 入库耗时：{tc}").format(num=serial, size=qsize,
+                                              tc=o - n))
 
 
 if __name__ == "__main__":
-    print('进程ID：{}'.format(os.getpid()))
     confile = './conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)

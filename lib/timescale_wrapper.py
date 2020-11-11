@@ -11,7 +11,7 @@ Description: 与TimescaleDB进行数据交互，包括：
 2. 创建表(Table)
 3. 创建超表(Hypertable)
 4. 动态添加列(Column)
-5. 插入数据
+5. 批量插入数据
 6. 查询数据
 
 """
@@ -33,7 +33,7 @@ except (ModuleNotFoundError, Exception):
     # 不要使用dbutils.pooled_pg.PooledPg
     from dbutils.pooled_db import PooledDB  # dbutils.__version__ >= 2.0
 
-log = logging.getLogger("TimescaleWrapper")
+log = logging.getLogger('TimescaleWrapper')
 
 
 class TimescaleWrapper(object):
@@ -47,18 +47,19 @@ class TimescaleWrapper(object):
         - 插入数据      (INSERT data)
         - 查询数据      (SELECT data)
     """
-    def __init__(self, pool_conf, timescale_conf):
+    def __init__(self, conf):
         """初始化方法
 
         1. 初始化配置信息
         2. 创建与TimescaleDB的连接（连接池）
         3. 预先创建Schema和Hypertable
 
-        :pool_conf: Pool配置参数
-        :timescale_conf: TimescaleDB配置参数
+        :conf: 配置参数
 
         """
+
         # 连接池配置
+        pool_conf: dict = conf['storage'].get('pool', dict())
         self.mincached: int = pool_conf.get('mincached', 10)
         self.maxcached: int = pool_conf.get('maxcached', 0)
         self.maxshared: int = pool_conf.get('maxshared', 0)
@@ -68,6 +69,7 @@ class TimescaleWrapper(object):
         self.ping: int = pool_conf.get('ping', 1)
 
         # TimescaleDB连接配置
+        timescale_conf: dict = conf['storage'].get('timescale', dict())
         self.host: str = timescale_conf.get('host', '127.0.0.1')
         self.port: int = timescale_conf.get('port', 5432)
         self.user: str = timescale_conf.get('user', None)
@@ -130,7 +132,7 @@ class TimescaleWrapper(object):
                 log.error(
                     "TimescaleDB Connection error: {error}".format(error=err))
             except AttributeError:
-                log.error("Pool failed, please check configuration")
+                log.error("Pool failed, please check configuration.")
             except Exception as err:
                 log.error(err)
 
@@ -157,8 +159,7 @@ class TimescaleWrapper(object):
             cursor.execute(SQL)
             self.db.commit()
         except DuplicateSchema as warn:
-            log.warning("{hint}: {warn}".format(hint='Duplicate schema',
-                                                warn=warn))
+            log.warning("Duplicate schema: {warn}".format(warn=warn))
         except (OperationalError, InterfaceError):
             log.error('Reconnect to the TimescaleDB ...')
             self.reconnect()
@@ -209,8 +210,7 @@ class TimescaleWrapper(object):
             cursor.execute(SQL)
             self.db.commit()
         except DuplicateTable as warn:
-            log.warning("{hint}: {warn_info}".format(hint='Create table',
-                                                     warn_info=warn))
+            log.warning("Create table: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
             log.error('Reconnect to the TimescaleDB ...')
             self.reconnect()
@@ -270,13 +270,11 @@ class TimescaleWrapper(object):
             self.db.commit()
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
-            log.error("{hint}: {warn_info}".format(hint='Undefined Schema',
-                                                   warn_info=warn))
+            log.error("Undefined schema: {text}".format(text=warn))
             log.info('Creating schema ...')
             self.createSchema(schema=schema)
         except DuplicateTable as warn:  # Hypertable已存在
-            log.warning("{hint}: {warn_info}".format(
-                hint='Duplicate hypertable', warn_info=warn))
+            log.warning("Duplicate hypertable: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
             log.error('Reconnect to the TimescaleDB ...')
             self.reconnect()
@@ -331,7 +329,8 @@ class TimescaleWrapper(object):
                     cursor.execute(SQL)
                     self.db.commit()
                 else:
-                    log.error('Cannot add Column, value type is not specified')
+                    log.error(
+                        'Cannot add column, value type is not specified.')
         except (OperationalError, InterfaceError):
             log.error('Reconnect to the TimescaleDB ...')
             self.reconnect()
@@ -472,8 +471,7 @@ class TimescaleWrapper(object):
             log.debug('Data inserted successfully.')
         except UndefinedTable as warn:
             # 数据库中不存在指定数据表，尝试创建
-            log.error('{hint}: {warn_info}'.format(hint='Undefined Table',
-                                                   warn_info=warn))
+            log.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             log.info('Creating schema ...')
             self.createSchema(schema=schema)
@@ -495,8 +493,7 @@ class TimescaleWrapper(object):
             log.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
             # 数据表中缺少某个Column，动态添加
-            log.warning('{hint}: {warn_info}'.format(hint='Undefined Column',
-                                                     warn_info=warn))
+            log.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
             log.info('Adding column ...')
             self.addColumn(schema=schema, table=table, datas=datas['fields'])
@@ -546,8 +543,7 @@ class TimescaleWrapper(object):
             result = cursor.fetchall()
             self.db.commit()
         except (UndefinedTable, UndefinedColumn) as warn:
-            log.error('{hint}: {warn_info}'.format(hint='Query Error',
-                                                   warn_info=warn))
+            log.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
             log.error('Reconnect to the TimescaleDB ...')
             self.reconnect()
@@ -584,7 +580,7 @@ if __name__ == "__main__":
     # 创建与TimescaleDB的连接
     confile = '../conf/conf.toml'
     conf = toml.load(confile)
-    client = TimescaleWrapper(conf['storage']['timescale'])
+    client = TimescaleWrapper(conf)
 
     # 运行简单测试方法
     while True:

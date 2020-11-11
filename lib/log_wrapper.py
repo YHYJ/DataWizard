@@ -6,7 +6,7 @@ Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-02 15:10:19
 
-Description: 预配置Log
+Description: 配置logger
 """
 
 import logging
@@ -37,8 +37,8 @@ def setupLogging(conf):
     max_size = conf['max_size']  # size of each local log file
     format_string = conf['format_string']  # log message format
 
-    log = logging.getLogger('TimescaleWrapper')
-    log.setLevel(logging.DEBUG)
+    logger = logging.getLogger('TimescaleWrapper')
+    logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -56,13 +56,13 @@ def setupLogging(conf):
                                                   encoding='utf-8')
         fh.setLevel(level[file_level])
         fh.setFormatter(formatter)
-        log.addHandler(fh)
+        logger.addHandler(fh)
 
     if console:
         # 实例化一个流式处理器，将日志输出到终端
         ch = logging.StreamHandler()
         ch.setLevel(level[console_level])
         ch.setFormatter(formatter)
-        log.addHandler(ch)
+        logger.addHandler(ch)
 
-    return log
+    return logger
