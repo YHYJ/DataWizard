@@ -57,9 +57,8 @@ class TimescaleWrapper(object):
         :conf: 配置参数
 
         """
-
         # 连接池配置
-        pool_conf: dict = conf['storage'].get('pool', dict())
+        pool_conf: dict = conf['other'].get('pool', dict())
         self.mincached: int = pool_conf.get('mincached', 10)
         self.maxcached: int = pool_conf.get('maxcached', 0)
         self.maxshared: int = pool_conf.get('maxshared', 0)
@@ -79,7 +78,15 @@ class TimescaleWrapper(object):
         self.column_time_name: str = timescale_conf['table'].get(
             'column_time_name', 'timestamp')
         self.column_id_name: str = timescale_conf['table'].get(
-            'column_id_name', 'deviceid')
+            'column_id_name', 'id')
+
+        # 日志中心配置
+        self.fork_message: bool = timescale_conf['message'].get(
+            'fork_message', False)
+        self.message_schema: str = timescale_conf['message'].get(
+            'message_schema', 'monitor')
+        self.message_table: str = timescale_conf['message'].get(
+            'message_table', 'message')
 
         # 创建TimescaleDB连接对象
         self.db = None
@@ -117,12 +124,79 @@ class TimescaleWrapper(object):
 
         return pool
 
-    def _forkLog(self):
+    def _forkLog(self, datas: dict):
         """Fork日志信息到一个独立的数据表
-        :returns: TODO
+
+        :datas: 包含日志信息的数据，dict类型
+        :returns: SQL语句
+
+                datas = {
+                    'timestamp': '2020-10-21 10:19:11',
+                    'deviceid': 'groot',
+                    'fields': {
+                        'message': {
+                            'name': 'message',
+                            'title': '日志信息',
+                            'value': 'XXX在XXXX年XX月XX日XX时XX分XX秒停机',
+                            'type': 'str',
+                            'unit': None
+                        },
+                        'level': {
+                            'name': 'level',
+                            'title': '日志等级',
+                            'value': 3,
+                            'type': 'int',
+                            'unit': None
+                        },
+                    }
+                }
 
         """
-        pass
+        # COLUMN NAME和COLUMN VALUE
+        columns_name = str()  # COLUMN NAME field
+        column_value = list()  # 单个COLUMN VALUE field
+        columns_value = list()  # 多个COLUMN VALUE field
+
+        # timestamp/id value
+        timestamp = "{ts_field}".format(
+            ts_field=datas.get(self.column_time_name))
+        id_ = "{id_name}".format(id_name=datas.get(self.column_id_name))
+
+        # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
+        # # 构建COLUMN NAME（固有列）
+        columns_name = "{column_time_name}, {column_id_name}".format(
+            column_time_name=self.column_time_name,  # 固有的时间戳列
+            column_id_name=self.column_id_name,  # 固有的ID列
+        )
+        # # 构建COLUMN VALUE
+        column_value.append(timestamp)  # 固有的时间戳列
+        column_value.append(id_)  # 固有的ID列
+        # # 构建COLUMN MARK
+        columns_value_mark: str = "%s, %s"  # 固有的MARK（时间戳和ID）
+        # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
+        for column, data in datas['fields'].items():
+            if column in ['message', 'level']:
+                # 完善COLUMN NAME
+                columns_name += ", {column_name}".format(column_name=column)
+                # 完善COLUMN VALUE
+                column_value.append(data['value'])
+                # 完善COLUMN MARK
+                columns_value_mark += ", %s"
+        # 合并多个COLUMN VALUE
+        columns_value.append(column_value)
+
+        # 构建SQL语句
+        SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
+               "VALUES ({column_value});").format(
+                   # SCHEMA.TABLE
+                   schema_name=self.message_schema,
+                   table_name=self.message_table,
+                   # COLUMN NAME
+                   column_name=columns_name,
+                   # COLUMN VALUE
+                   column_value=columns_value_mark)
+
+        return SQL, columns_value
 
     def _reconnect(self):
         """重开与TimescaleDB的连接"""
@@ -294,6 +368,7 @@ class TimescaleWrapper(object):
         :schema: 使用的Schema名
         :table: 使用的Table名
         :datas: Column名及其数据类型
+
                 datas = {
                             'column1': {
                                 'type': 'int'
@@ -352,6 +427,7 @@ class TimescaleWrapper(object):
         然后将column_value: list组合成一个大列表columns_value: list，最后构建SQL语句进行批量插入
 
         :datas: 要插入的数据，可以是元素为dict的list或者单独的dict
+
                 datas = [{
                     'timestamp': '2020-10-21 10:19:11',
                     'schema': 'alien',
@@ -386,16 +462,22 @@ class TimescaleWrapper(object):
 
         """
         # COLUMN NAME和COLUMN VALUE
-        columns_name = str()  # COLUMN NAME field
-        column_value = list()  # 单个COLUMN VALUE field
-        columns_value = list()  # 多个COLUMN VALUE field
+        # # COLUMN NAME field，'name1, name2, name3'
+        columns_name = str()
+        # # 单个COLUMN VALUE field，[value1, value2, value3]
+        column_value = list()
+        # # 多个COLUMN VALUE field，[column_value, column_value, column_value]
+        columns_value = list()
+        # # 多个MSG COLUMN VALUE field，[column_value, column_value, column_value]
+        msgs_columns_value = list()
 
         if isinstance(datas, (list, types.GeneratorType)):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
-            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
-            timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
+            timestamp = "{ts_field}".format(
+                ts_field=datas[0].get(self.column_time_name))
+            id_ = "{id_name}".format(id_name=datas[0].get(self.column_id_name))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -414,8 +496,14 @@ class TimescaleWrapper(object):
                 columns_name += ", {column_name}".format(column_name=column)
                 # 完善COLUMN MARK
                 columns_value_mark += ", %s"  # 确定MARK的不定长部分长度
-            # 完善COLUMN VALUE
+
             for data in datas:
+                # 检索处理日志信息，如果'message'和'level'都是data['fields']的key
+                if set(['message',
+                        'level']).issubset(set(data['fields'].keys())):
+                    SQL_MSG, msgs_columns_value = self._forkLog(datas=data)
+                    msgs_columns_value += msgs_columns_value
+                # 完善COLUMN VALUE
                 for data in data['fields'].values():
                     # 构建COLUMN VALUE
                     column_value.append(data['value'])
@@ -454,6 +542,11 @@ class TimescaleWrapper(object):
                 columns_value_mark += ", %s"
             # 合并多个COLUMN VALUE
             columns_value.append(column_value)
+
+            # 检索处理日志信息，如果'message'和'level'都是datas['fields']的key
+            if set(['message', 'level']).issubset(set(datas['fields'].keys())):
+                SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
+                msgs_columns_value += msgs_columns_value
         else:
             log.error("Data type error, 'datas' must be list or dict.")
 
@@ -471,7 +564,10 @@ class TimescaleWrapper(object):
         # 执行SQL语句
         try:
             cursor = self.db.cursor()
-            cursor.executemany(SQL, columns_value)  # 批量插入
+            tag = 0
+            cursor.executemany(SQL, columns_value)
+            tag = 1
+            cursor.executemany(SQL_MSG, msgs_columns_value)
             self.db.commit()
             log.debug('Data inserted successfully.')
         except UndefinedTable as warn:
@@ -479,21 +575,29 @@ class TimescaleWrapper(object):
             log.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             log.info('Creating schema ...')
-            self.createSchema(schema=schema)
+            # # 根据tag（指明了try中运行到哪一步）决定参数值
+            curr_schema = schema if tag == 0 else self.message_schema
+            curr_table = table if tag == 0 else self.message_table
+            self.createSchema(schema=curr_schema)
             # 尝试创建Hypertable
             log.info('Creating hypertable ...')
             columns = dict()
-            # 根据datas的类型取到它的'fields'
-            # # 因为上面已经做过判断，所以datas只可能是dict或list类型
+            # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
+            # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key, value in cache['fields'].items():
-                columns.update({key: value['type']})
-            self.createHypertable(schema=schema,
-                                  hypertable=table,
+                if tag == 1:
+                    if key in ['message', 'level']:
+                        columns.update({key: value['type']})
+                else:
+                    columns.update({key: value['type']})
+            self.createHypertable(schema=curr_schema,
+                                  hypertable=curr_table,
                                   columns=columns)
             # 尝试再次写入数据
             cursor = self.db.cursor()
             cursor.executemany(SQL, columns_value)
+            cursor.executemany(SQL_MSG, msgs_columns_value)
             self.db.commit()
             log.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
@@ -501,7 +605,18 @@ class TimescaleWrapper(object):
             log.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
             log.info('Adding column ...')
-            self.addColumn(schema=schema, table=table, datas=datas['fields'])
+            # # 根据tag（指明了try中运行到哪一步）决定参数值
+            curr_schema = schema if tag == 0 else self.message_schema
+            curr_table = table if tag == 0 else self.message_table
+            # # 根据datas的类型取到它的'fields'
+            cache = datas if isinstance(datas, dict) else datas[0]
+            # # 根据tag（指明了try中运行到哪一步）决定参数值
+            for key in cache['fields'].keys():
+                if tag == 1 and key not in ['message', 'level']:
+                    cache.pop(key, None)
+            self.addColumn(schema=curr_schema,
+                           table=curr_table,
+                           datas=cache['fields'])
             # 尝试再次写入数据
             cursor = self.db.cursor()
             cursor.executemany(SQL, columns_value)
@@ -511,7 +626,8 @@ class TimescaleWrapper(object):
             log.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            #  log.error(err)
+            raise err
 
     def queryData(self,
                   schema: str,

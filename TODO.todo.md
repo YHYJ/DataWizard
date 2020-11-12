@@ -1,3 +1,5 @@
 - [ ] 修改main.py，符合批量插入要求 (2020-11-11 11:51)
   - [ ] 按时间片或队列大小 (2020-11-11 11:52)
-- [ ] 更新timescale_wrapper：分流log信息 -- 实时数据里一份，总的log表里一份（recordtime，deviceid，level，message） (2020-11-06 17:51)
+- [ ] 分流log信息 -- 实时数据里一份，总的log表里一份（recordtime，deviceid，level，message） (2020-11-06 17:51)
+  - [ ] 在insertData方法中检索log信息 (2020-11-12 10:32)
+  - [X] 在main.py中另起一个进程，专门fork log (2020-11-12 10:33)
