@@ -192,14 +192,13 @@ class Wizard(object):
     def persistence(self, serial):
         """数据持久化
 
-        :queue: 数据缓存队列
-        :serial: 进程序列号
+        :seial: 序列号
 
         """
         while True:
             data_bytes = self.data_queue.get()
             qsize = self.data_queue.qsize()
-            if qsize >= 10000:
+            if qsize >= 6000:
                 break
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
@@ -207,8 +206,9 @@ class Wizard(object):
             self.timescale.insertData(data_dict)
             o = time.time()
             log.info(("Thread {num} got data, long(queue) = {size} "
-                      "<-> 入库耗时：{tc}").format(num=serial, size=qsize,
-                                              tc=o - n))
+                      "<-> time cost = {tc}").format(num=serial,
+                                                     size=qsize,
+                                                     tc=o - n))
 
 
 if __name__ == "__main__":
