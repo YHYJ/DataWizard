@@ -16,7 +16,12 @@
 
 ---
 
-<!-- Object info -->
+[PostgreSQL性能优化](http://mysql.taobao.org/monthly/2016/04/05/)
+[PostgreSQL写入性能优化](https://developer.aliyun.com/article/647444)
+[PostgreSQL批量更新/插入](https://www.jianshu.com/p/1e389047cfa6)
+[PostgreSQL 如何实现批量更新、删除、插入](https://developer.aliyun.com/article/74420)
+[python使用psycopg2批量插入数据](https://blog.csdn.net/lsr40/article/details/83537974)
+[psycopg2批量插入方法对比](https://blog.csdn.net/china1987427/article/details/95120023)
 
 ---
 
