@@ -1,6 +1,6 @@
 # 标注了'FIXME'的是必须赋值的参数
 # 标注了'CHANGED'的是可能需要修改的参数
-# 标注了'NOTE'的是使用默认值即可的参数
+# 标注了'NOTE'的是也许使用默认值即可的参数
 
 threads = 30                                    # CHANGED: 线程数，为0则取值CPU核心数
 
@@ -25,8 +25,8 @@ threads = 30                                    # CHANGED: 线程数，为0则�
 
     [storage.timescale]
         # 数据库连接参数
-        host = '127.0.0.1'
-        port = 5432
+        host = '127.0.0.1'                      # CHANGED: TimescaleDB服务器地址
+        port = 5432                             # NOTE: TimescaleDB服务器端口
         user = ''                               # FIXME: TimescaleDB用户名
         password = ''                           # FIXME: TimescaleDB密码
         dbname = 'postgres'                     # CHANGED: 要使用的数据库名，默认postgres
