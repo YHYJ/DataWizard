@@ -394,8 +394,8 @@ class TimescaleWrapper(object):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
-            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
+            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -429,8 +429,7 @@ class TimescaleWrapper(object):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(schema_name=datas.get('schema'))
             table = "{table_name}".format(table_name=datas.get('table'))
-            timestamp = "{ts_field}".format(
-                ts_field=datas.get(self.column_time_name))
+            timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
             id_ = "{id_name}".format(id_name=datas.get(self.column_id_name))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
