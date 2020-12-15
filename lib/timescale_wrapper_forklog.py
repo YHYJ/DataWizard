@@ -368,7 +368,6 @@ class TimescaleWrapper(object):
         :schema: 使用的Schema名
         :table: 使用的Table名
         :datas: Column名及其数据类型
-
                 datas = {
                             'column1': {
                                 'type': 'int'
@@ -427,7 +426,6 @@ class TimescaleWrapper(object):
         然后将column_value: list组合成一个大列表columns_value: list，最后构建SQL语句进行批量插入
 
         :datas: 要插入的数据，可以是元素为dict的list或者单独的dict
-
                 datas = [{
                     'timestamp': '2020-10-21 10:19:11',
                     'schema': 'alien',
@@ -624,8 +622,7 @@ class TimescaleWrapper(object):
             log.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            #  log.error(err)
-            raise err
+            log.error(err)
 
     def queryData(self,
                   schema: str,

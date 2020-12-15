@@ -57,7 +57,6 @@ class TimescaleWrapper(object):
         :conf: 配置参数
 
         """
-
         # 连接池配置
         pool_conf: dict = conf['storage'].get('pool', dict())
         self.mincached: int = pool_conf.get('mincached', 10)
