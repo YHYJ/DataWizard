@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: main.py
+File: persistence_data.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-06 16:06:47
 
-Description: 将数据从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
+Description: 将data从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 
 """
 
@@ -21,7 +21,7 @@ import paho.mqtt.client as Mqtt
 import toml
 
 from lib.log_wrapper import setupLogging
-from lib.timescale_wrapper_forklog import TimescaleWrapper
+from lib.timescale_wrapper import TimescaleWrapper
 
 log = logging.getLogger("DataWizard.main")
 
@@ -63,8 +63,8 @@ class Wizard(object):
             self.connectMqtt()
 
         # 数据去处配置
-        if self.data_storage == 'timescale':
-            self.timescale = TimescaleWrapper(conf)
+        self.database = TimescaleWrapper(conf['storage'].get(
+            self.data_storage, dict()))
 
     def connectMqtt(self):
         """Connect to MQTT."""
@@ -169,7 +169,7 @@ class Wizard(object):
 
         """
         msg = message.payload
-        #  print('订阅到数据：{}'.format(msg))
+        print('Subscribe to data: {}'.format(msg))
         self.data_queue.put(msg, block=False)
 
     def subMessage(self):
@@ -192,7 +192,7 @@ class Wizard(object):
     def persistence(self, serial):
         """数据持久化
 
-        :seial: 序列号
+        :serial: 进程序列号
 
         """
         while True:
@@ -203,7 +203,8 @@ class Wizard(object):
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
             n = time.time()
-            self.timescale.insertData(data_dict)
+            self.database.insertData(data_dict)
+            time.sleep(0.01)  # 阻塞0.01~0.02秒效果更好
             o = time.time()
             log.info(("Thread {num} got data, long(queue) = {size} "
                       "<-> time cost = {tc}").format(num=serial,
