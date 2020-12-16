@@ -50,9 +50,9 @@ data_storage = 'timescale'                  # CHANGED: 数据持久化方案，�
 
 [log]
 console = true                              # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
-console_level = 'DEBUG'                     # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
+console_level = 'DEBUG'                     # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                 # NOTE: 是否要将log输出到文件中
-file_level = 'DEBUG'                        # 'DEBUG','INFO','WARNING','ERROR','CRITICAL'
+file_level = 'DEBUG'                        # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 log_file = 'logs/log.log'                   # NOTE: log文件存储路径
 max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
 backup_count = 5                            # NOTE: 最大log文件数

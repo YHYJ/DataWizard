@@ -20,8 +20,8 @@ from threading import Thread
 import paho.mqtt.client as Mqtt
 import toml
 
-from lib.log_wrapper import setupLogging
-from lib.timescale_wrapper import TimescaleWrapper
+from utils.log_wrapper import setupLogging
+from utils.timescale_wrapper import TimescaleWrapper
 
 log = logging.getLogger("DataWizard.main")
 
@@ -181,18 +181,10 @@ class Wizard(object):
         except Exception as err:
             log.error(err)
 
-    def wizard(self):
-        """Main."""
-        self.subMessage()
-
-        for serial in range(0, self.threads):
-            task = Thread(target=self.persistence, args=(serial, ))
-            task.start()
-
     def persistence(self, serial):
         """数据持久化
 
-        :serial: 进程序列号
+        :serial: 线程序列号
 
         """
         while True:
@@ -210,6 +202,15 @@ class Wizard(object):
                       "<-> time cost = {tc}").format(num=serial,
                                                      size=qsize,
                                                      tc=o - n))
+
+    def wizard(self):
+        """Main."""
+        self.subMessage()
+
+        for serial in range(1, self.threads + 1):
+            task = Thread(target=self.persistence, args=(serial, ))
+            #  task.setDaemon(True)
+            task.start()
 
 
 if __name__ == "__main__":
