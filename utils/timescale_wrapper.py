@@ -347,7 +347,7 @@ class TimescaleWrapper(object):
                     'timestamp': '2020-10-21 10:19:11',
                     'schema': 'alien',
                     'table': 'tree',
-                    'deviceid': 'groot',
+                    'id': 'groot',
                     'fields': {
                         'x': {
                             'name': 'x',
@@ -362,7 +362,7 @@ class TimescaleWrapper(object):
                     'timestamp': '2020-10-21 10:19:21',
                     'schema': 'alien',
                     'table': 'tree',
-                    'deviceid': 'groot',
+                    'id': 'groot',
                     'fields': {
                         'x': {
                             'name': 'x',
@@ -386,7 +386,7 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
+            id_ = "{id_name}".format(id_name=datas[0].get(self.column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -421,7 +421,7 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas.get('schema'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas.get('deviceid'))
+            id_ = "{id_name}".format(id_name=datas.get(self.column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -513,7 +513,7 @@ class TimescaleWrapper(object):
 
         :schema: 查询的Schema
         :table: 查询的Table
-        :column: 查询的Column，形如'timestamp,deviceid,x'
+        :column: 查询的Column，形如'timestamp,id,x'
         :order: 以order排序
         :limit: 限制查询数量为limit
         :return: 查询结果，是个由元组组成的的列表
@@ -589,7 +589,7 @@ if __name__ == "__main__":
         print('Insert Data')
 
         # 测试查询数据
-        columns = 'timestamp,deviceid'
+        columns = 'timestamp,id'
         conf = conf['database']['timescale']
         result = client.queryData(column=columns,
                                   schema=datas.get('schema'),
