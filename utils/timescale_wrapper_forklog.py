@@ -473,7 +473,6 @@ class TimescaleWrapper(object):
         columns_name = str()  # COLUMN NAME field
         column_value = list()  # 单个COLUMN VALUE field
         columns_value = list()  # 多个COLUMN VALUE field
-        msgs_columns_value = list()  # 多个MSG COLUMN VALUE field
 
         if isinstance(datas, (list, types.GeneratorType)):
             # schema.table value和timestamp/id value
@@ -505,7 +504,6 @@ class TimescaleWrapper(object):
                 if set(['message',
                         'level']).issubset(set(data['fields'].keys())):
                     SQL_MSG, msgs_columns_value = self._forkLog(datas=data)
-                    msgs_columns_value += msgs_columns_value
                 for data in data['fields'].values():
                     # 构建COLUMN VALUE
                     column_value.append(data['value'])
@@ -547,7 +545,6 @@ class TimescaleWrapper(object):
             # 检索处理日志信息，如果'message'和'level'都是datas['fields']的key
             if set(['message', 'level']).issubset(set(datas['fields'].keys())):
                 SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
-                msgs_columns_value += msgs_columns_value
         else:
             log.error("Data type error, 'datas' must be list or dict.")
 
