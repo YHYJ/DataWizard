@@ -115,13 +115,6 @@ class TimescaleWrapper(object):
 
         return pool
 
-    def _forkLog(self):
-        """Fork日志信息到一个独立的数据表
-        :returns: TODO
-
-        """
-        pass
-
     def _reconnect(self):
         """重开与TimescaleDB的连接"""
         if not self.database._closed:
