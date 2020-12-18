@@ -25,9 +25,9 @@ data_storage = 'timescale'                  # CHANGED: 数据持久化方案，�
     # 数据库连接参数
     host = '127.0.0.1'                      # CHANGED: TimescaleDB服务器地址
     port = 5432                             # NOTE: TimescaleDB服务器端口
-    user = ''                               # FIXME: TimescaleDB用户名
-    password = ''                           # FIXME: TimescaleDB密码
-    dbname = 'postgres'                     # CHANGED: 要使用的数据库名，默认postgres
+    user = 'postgres'                       # FIXME: TimescaleDB用户名
+    password = 'postgres'                   # FIXME: TimescaleDB密码
+    dbname = 'postgres'                     # CHANGED: 要使用的数据库名
         [storage.timescale.pool]
         # 数据库连接池配置信息
         mincached=10                        # NOTE: 池中空闲连接初始数量，default = 10
