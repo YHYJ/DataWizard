@@ -6,7 +6,7 @@ Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-06 16:06:47
 
-Description: 将log从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
+Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 
 """
 

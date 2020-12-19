@@ -11,7 +11,6 @@ Description: 将data从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 """
 
 import json
-import logging
 import os
 import time
 from queue import Queue
@@ -22,8 +21,6 @@ import toml
 
 from utils.log_wrapper import setupLogging
 from utils.timescale_wrapper import TimescaleWrapper
-
-log = logging.getLogger("DataWizard.main")
 
 
 class Wizard(object):
@@ -46,6 +43,9 @@ class Wizard(object):
         # 线程数
         self.threads: int = conf.get('threads') if conf.get(
             'threads', 0) > 0 else os.cpu_count()
+
+        # 日志记录器配置
+        self.logger = setupLogging(conf['log'])
 
         # 数据来源配置
         if self.data_source == 'mqtt':
@@ -80,10 +80,10 @@ class Wizard(object):
             self.mqtt.connect(host=self._hostname,
                               port=self._port,
                               keepalive=self._keepalive)
-            log.info("Successfully connected to {text}.".format(
+            self.logger.info("Successfully connected to {text}.".format(
                 text=self.data_source))
         except Exception as err:
-            log.error("Connection error: {text}".format(text=err))
+            self.logger.error("Connection error: {text}".format(text=err))
 
     def __on_connect(self,
                      client,
@@ -112,9 +112,9 @@ class Wizard(object):
 
         """
         if reasonCode == 0:
-            log.info('MQTT bridge connected.')
+            self.logger.info('MQTT bridge connected.')
         else:
-            log.error('Connection error, reasonCode = {text}.'.format(
+            self.logger.error('Connection error, reasonCode = {text}.'.format(
                 text=reasonCode))
             client.disconnect()
 
@@ -129,7 +129,7 @@ class Wizard(object):
                      For MQTT v3.1 and v3.1.1, properties = None
 
         """
-        log.info(
+        self.logger.info(
             "Disconnection with reasonCode = {text}.".format(text=reasonCode))
 
     def __on_subscribe(self,
@@ -156,7 +156,7 @@ class Wizard(object):
             callback(client, userdata, mid, reasonCodes, properties)
 
         """
-        log.info('Subscribed success, mid = {mid} granted_qos = {qos}.'.format(
+        self.logger.info('Subscribed success, mid = {mid} granted_qos = {qos}.'.format(
             mid=mid, qos=granted_qos))
 
     def __on_message(self, client, userdata, message):
@@ -169,7 +169,6 @@ class Wizard(object):
 
         """
         msg = message.payload
-        print('Subscribe to data: {}'.format(msg))
         self.data_queue.put(msg, block=False)
 
     def subMessage(self):
@@ -179,7 +178,7 @@ class Wizard(object):
             for topic in self._topics:
                 self.mqtt.subscribe(topic=topic, qos=self._qos)
         except Exception as err:
-            log.error(err)
+            self.logger.error(err)
 
     def persistence(self, serial):
         """数据持久化
@@ -198,7 +197,7 @@ class Wizard(object):
             self.database.insertData(data_dict)
             time.sleep(0.01)  # 阻塞0.01~0.02秒效果更好
             o = time.time()
-            log.info(("Thread {num} got data, long(queue) = {size} "
+            self.logger.info(("Thread {num} got data, long(queue) = {size} "
                       "<-> time cost = {tc}").format(num=serial,
                                                      size=qsize,
                                                      tc=o - n))
