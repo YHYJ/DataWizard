@@ -80,8 +80,6 @@ class Wizard(object):
             self.mqtt.connect(host=self._hostname,
                               port=self._port,
                               keepalive=self._keepalive)
-            self.logger.info("Successfully connected to {text}.".format(
-                text=self.data_source))
         except Exception as err:
             self.logger.error("Connection error: {text}".format(text=err))
 
