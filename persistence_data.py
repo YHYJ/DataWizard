@@ -154,8 +154,9 @@ class Wizard(object):
             callback(client, userdata, mid, reasonCodes, properties)
 
         """
-        self.logger.info('Subscribed success, mid = {mid} granted_qos = {qos}.'.format(
-            mid=mid, qos=granted_qos))
+        self.logger.info(
+            'Subscribed success, mid = {mid} granted_qos = {qos}.'.format(
+                mid=mid, qos=granted_qos))
 
     def __on_message(self, client, userdata, message):
         """called when a message has been received on a topic.
@@ -191,14 +192,13 @@ class Wizard(object):
                 break
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
-            n = time.time()
+            start = time.time()
             self.database.insertData(data_dict)
-            time.sleep(0.01)  # 阻塞0.01~0.02秒效果更好
-            o = time.time()
-            self.logger.info(("Thread {num} got data, long(queue) = {size} "
-                      "<-> time cost = {tc}").format(num=serial,
-                                                     size=qsize,
-                                                     tc=o - n))
+            end = time.time()
+            self.logger.info(("Thread-{num} got data, queue size = {size} "
+                              "<-> Time cost = {tc}s").format(num=serial,
+                                                              size=qsize,
+                                                              tc=end - start))
 
     def wizard(self):
         """Main."""
@@ -206,7 +206,6 @@ class Wizard(object):
 
         for serial in range(1, self.threads + 1):
             task = Thread(target=self.persistence, args=(serial, ))
-            #  task.setDaemon(True)
             task.start()
 
 

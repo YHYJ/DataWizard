@@ -55,5 +55,5 @@ file = true                                 # NOTE: 是否要将log输出到文�
 file_level = 'DEBUG'                        # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 log_file = 'logs/log.log'                   # NOTE: log文件存储路径
 max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
-backup_count = 5                            # NOTE: 最大log文件数
+backup_count = 10                           # NOTE: 最大log文件数
 format_string = '(%(asctime)s), %(levelname)s, <%(threadName)s>, %(module)s, %(funcName)s, [%(lineno)d]: %(message)s'
