@@ -31,40 +31,39 @@ class Wizard(object):
         :conf: 总配置信息
 
         """
-        setupLogging(conf['log'])
-        # 数据的来源和去处
-        self.data_source: str = conf['source'].get('data_source', 'mqtt')
-        self.data_storage: str = conf['storage'].get('data_storage',
-                                                     'timescale')
-
-        # 数据缓存队列
-        self.data_queue = Queue()
-
-        # 线程数
-        self.number: int = conf.get('number') if conf.get(
+        # [main] - Dizard配置
+        main_conf = conf.get('main', dict())
+        # # 进程或线程数
+        self.number = conf.get('number') if conf.get(
             'number', 0) > 0 else os.cpu_count()
+        data_source = main_conf.get('data_source', 'mqtt')
+        data_storage = main_conf.get('data_storage', 'timescale')
 
-        # 日志记录器配置
-        self.logger = setupLogging(conf['log'])
-
-        # 数据来源配置
-        if self.data_source == 'mqtt':
-            mqtt_conf: dict = conf['source'].get('mqtt', dict())
-            self._hostname: str = mqtt_conf.get('host', '127.0.0.1')
-            self._port: int = mqtt_conf.get('port', 1883)
-            self._username: str = mqtt_conf.get('username', None)
-            self._password: str = mqtt_conf.get('password', None)
-            self._client_id: str = mqtt_conf.get('client_id', str())
-            self._topics: list = mqtt_conf.get('topics', list())
-            self._qos: int = mqtt_conf.get('qos', 2)
-            self._keepalive: int = mqtt_conf.get('keepalive', 60)
+        # [source] - 数据来源配置
+        source_conf = conf['source'].get(data_source, dict())
+        if data_source == 'mqtt':
+            self._hostname = source_conf.get('host', '127.0.0.1')
+            self._port = source_conf.get('port', 1883)
+            self._username = source_conf.get('username', None)
+            self._password = source_conf.get('password', None)
+            self._client_id = source_conf.get('client_id', str())
+            self._topics = source_conf.get('topics', list())
+            self._qos = source_conf.get('qos', 2)
+            self._keepalive = source_conf.get('keepalive', 60)
 
             self.mqtt = None
             self.connectMqtt()
 
-        # 数据去处配置
-        self.database = TimescaleWrapper(conf['storage'].get(
-            self.data_storage, dict()))
+        # [storage] - 数据去处配置
+        storage_conf = conf['storage'].get(data_storage, dict())
+        if data_storage == 'timescale':
+            self.database = TimescaleWrapper(storage_conf)
+
+        # [log] - 日志记录器配置
+        self.logger = setupLogging(conf['log'])
+
+        # 数据缓存队列
+        self.data_queue = Queue()
 
     def connectMqtt(self):
         """Connect to MQTT."""
