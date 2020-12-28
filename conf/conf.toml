@@ -2,11 +2,13 @@
 # 标注了'CHANGED'的是可能需要修改的参数
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
+[main]
 number = 30                                 # CHANGED: 进程或线程数，为0则取值CPU核心数
+data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
+data_storage = 'timescale'                  # CHANGED: 数据持久化方案，可选值：timescale
 
 [source]
-# 数据来源位置
-data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
+# 数据来源配置
     [source.mqtt]
     host = '127.0.0.1'                      # CHANGED: MQTT broker服务地址
     port = 1883                             # CHANGED: MQTT broker服务地址
@@ -19,8 +21,7 @@ data_source = 'mqtt'                        # CHANGED: 数据来源，可选值�
 
 
 [storage]
-# 数据存储位置
-data_storage = 'timescale'                  # CHANGED: 数据持久化方案，可选值：timescale
+# 数据存储配置
     [storage.timescale]
     # 数据库连接参数
     host = '127.0.0.1'                      # CHANGED: TimescaleDB服务器地址
