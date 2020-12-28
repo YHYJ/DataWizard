@@ -165,7 +165,6 @@ class TimescaleWrapper(object):
         """
         # COLUMN NAME和COLUMN VALUE
         columns_name = str()  # COLUMN NAME field
-        column_value = list()  # 单个COLUMN VALUE field
         columns_value = list()  # 多个COLUMN VALUE field
 
         # timestamp/id value
@@ -179,21 +178,26 @@ class TimescaleWrapper(object):
             column_id=self.column_id,  # 固有的ID列
         )
         # # 构建COLUMN VALUE
-        column_value.append(timestamp)  # 固有的时间戳列
-        column_value.append(id_)  # 固有的ID列
+        columns_value.append(timestamp)  # 固有的时间戳列
+        columns_value.append(id_)  # 固有的ID列
         # # 构建COLUMN MARK
         columns_value_mark: str = "%s, %s"  # 固有的MARK（时间戳和ID）
         # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
-        for column, data in datas['fields'].items():
-            if column in ['message', 'level']:
+        # 完善COLUMN NAME
+        columns_name += ", {column_name}".format(column_name='message')
+        # 完善COLUMN VALUE
+        columns_value.append(datas['fields']['message'].get('value', str()))
+        # 完善COLUMN MARK
+        columns_value_mark += ", %s"
+        others = ['level', 'source', 'logpath']
+        for key in others:
+            if key in datas['fields'].keys():
                 # 完善COLUMN NAME
-                columns_name += ", {column_name}".format(column_name=column)
+                columns_name += ", {column_name}".format(column_name=key)
                 # 完善COLUMN VALUE
-                column_value.append(data['value'])
+                columns_value.append(datas['fields'][key].get('value', str()))
                 # 完善COLUMN MARK
                 columns_value_mark += ", %s"
-        # 合并多个COLUMN VALUE
-        columns_value.append(column_value)
 
         # 构建SQL语句
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
@@ -469,7 +473,8 @@ class TimescaleWrapper(object):
                 }]
 
         """
-        # COLUMN NAME和COLUMN VALUE
+        # SQL_MSG、COLUMN NAME和COLUMN VALUE
+        SQL_MSG = str()  # Log message SQL statement
         columns_name = str()  # COLUMN NAME field
         column_value = list()  # 单个COLUMN VALUE field
         columns_value = list()  # 多个COLUMN VALUE field
@@ -501,8 +506,7 @@ class TimescaleWrapper(object):
             # 完善COLUMN VALUE
             for data in datas:
                 # 检索处理日志信息，如果'message'和'level'都是data['fields']的key
-                if set(['message',
-                        'level']).issubset(set(data['fields'].keys())):
+                if 'message' in data['fields'].keys():
                     SQL_MSG, msgs_columns_value = self._forkLog(datas=data)
                 for data in data['fields'].values():
                     # 构建COLUMN VALUE
@@ -543,7 +547,7 @@ class TimescaleWrapper(object):
             columns_value.append(column_value)
 
             # 检索处理日志信息，如果'message'和'level'都是datas['fields']的key
-            if set(['message', 'level']).issubset(set(datas['fields'].keys())):
+            if 'message' in datas['fields'].keys():
                 SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
         else:
             log.error("Data type error, 'datas' must be list or dict.")
@@ -565,7 +569,8 @@ class TimescaleWrapper(object):
             tag = 0
             cursor.executemany(SQL, columns_value)
             tag = 1
-            cursor.executemany(SQL_MSG, msgs_columns_value)
+            if SQL_MSG:
+                cursor.executemany(SQL_MSG, msgs_columns_value)
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedTable as warn:
@@ -595,7 +600,8 @@ class TimescaleWrapper(object):
             # 尝试再次写入数据
             cursor = self.database.cursor()
             cursor.executemany(SQL, columns_value)
-            cursor.executemany(SQL_MSG, msgs_columns_value)
+            if SQL_MSG:
+                cursor.executemany(SQL_MSG, msgs_columns_value)
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
