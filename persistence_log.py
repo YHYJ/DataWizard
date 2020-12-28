@@ -163,12 +163,13 @@ class Wizard(object):
 
         :client: client instance that is calling the callback
         :userdata: user data of any type
-        :message: an instance of MQTTMessage
+        :message: an instance of MQTT message
                   This is a class with members topic, payload, qos, retain.
 
         """
+        topic = message.topic
         msg = message.payload
-        self.data_queue.put(msg, block=False)
+        self.data_queue.put(msg)
 
     def subMessage(self):
         """Subscribe to data from MQTT bridge."""
