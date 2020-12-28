@@ -84,6 +84,7 @@ class TimescaleWrapper(object):
         self.fork_log: bool = log_conf.get('fork_log', False)
         self.log_schema: str = log_conf.get('log_schema', 'monitor')
         self.log_table: str = log_conf.get('log_table', 'log')
+        self.log_column: str = log_conf.get('log_column', list())
 
         # 创建TimescaleDB连接对象
         self.database = None
@@ -189,13 +190,13 @@ class TimescaleWrapper(object):
         columns_value.append(datas['fields']['message'].get('value', str()))
         # 完善COLUMN MARK
         columns_value_mark += ", %s"
-        others = ['level', 'source', 'logpath']
-        for key in others:
-            if key in datas['fields'].keys():
+        for column in self.log_column:
+            if column in datas['fields'].keys():
                 # 完善COLUMN NAME
-                columns_name += ", {column_name}".format(column_name=key)
+                columns_name += ", {column_name}".format(column_name=column)
                 # 完善COLUMN VALUE
-                columns_value.append(datas['fields'][key].get('value', str()))
+                columns_value.append(datas['fields'][column].get(
+                    'value', str()))
                 # 完善COLUMN MARK
                 columns_value_mark += ", %s"
 
@@ -505,7 +506,7 @@ class TimescaleWrapper(object):
                 columns_value_mark += ", %s"  # 确定MARK的不定长部分长度
             # 完善COLUMN VALUE
             for data in datas:
-                # 检索处理日志信息，如果'message'和'level'都是data['fields']的key
+                # 检索处理日志信息，如果'message'是data['fields']的key
                 if 'message' in data['fields'].keys():
                     SQL_MSG, msgs_columns_value = self._forkLog(datas=data)
                 for data in data['fields'].values():
@@ -546,7 +547,7 @@ class TimescaleWrapper(object):
             # 合并多个COLUMN VALUE
             columns_value.append(column_value)
 
-            # 检索处理日志信息，如果'message'和'level'都是datas['fields']的key
+            # 检索处理日志信息，如果'message'是datas['fields']的key
             if 'message' in datas['fields'].keys():
                 SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
         else:
@@ -574,7 +575,7 @@ class TimescaleWrapper(object):
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedTable as warn:
-            # 数据库中不存在指定数据表，尝试创建
+            # 数据库中缺少指定Table，动态创建
             log.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             log.info('Creating schema ...')
@@ -590,7 +591,7 @@ class TimescaleWrapper(object):
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key, value in cache['fields'].items():
                 if tag == 1:
-                    if key in ['message', 'level']:
+                    if key in self.log_column:
                         columns.update({key: value['type']})
                 else:
                     columns.update({key: value['type']})
@@ -605,7 +606,7 @@ class TimescaleWrapper(object):
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
-            # 数据表中缺少某个Column，动态添加
+            # 数据表中缺少指定Column，动态创建
             log.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
             log.info('Adding column ...')
@@ -616,7 +617,7 @@ class TimescaleWrapper(object):
             cache = datas if isinstance(datas, dict) else datas[0]
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key in cache['fields'].keys():
-                if tag == 1 and key not in ['message', 'level']:
+                if tag == 1 and key not in self.log_column:
                     cache.pop(key, None)
             self.addColumn(schema=curr_schema,
                            table=curr_table,
