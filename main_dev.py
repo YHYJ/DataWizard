@@ -38,7 +38,7 @@ class Wizard(object):
                                                      'timescale')
 
         # 数据缓存队列
-        #  self.queues = Queue()
+        #  self.data_queue = Queue()
         self.queues = {
             'data': Queue(),
             'log': Queue(),
@@ -46,8 +46,8 @@ class Wizard(object):
         }
 
         # 线程数
-        self.threads: int = conf.get('threads') if conf.get(
-            'threads', 0) > 0 else os.cpu_count()
+        self.number: int = conf.get('number') if conf.get(
+            'number', 0) > 0 else os.cpu_count()
 
         # 日志记录器配置
         self.logger = setupLogging(conf['log'])
@@ -172,14 +172,13 @@ class Wizard(object):
                   This is a class with members topic, payload, qos, retain.
 
         """
-        topic = message.topic
         msg = message.payload
-        self.queues.put(msg)
+        self.data_queue.put(msg)
 
     def subMessage(self):
         """Subscribe to data from MQTT bridge."""
         try:
-            self.mqtt.loop_start()
+            self.mqtt.loop_start()  # 不能用loop_forever
             for topic in self._topics:
                 self.mqtt.subscribe(topic=topic, qos=self._qos)
         except Exception as err:
@@ -192,8 +191,8 @@ class Wizard(object):
 
         """
         while True:
-            data_bytes = self.queues.get()
-            qsize = self.queues.qsize()
+            data_bytes = self.data_queue.get()
+            qsize = self.data_queue.qsize()
             if qsize >= 6000:
                 break
             data_str = data_bytes.decode('UTF-8')
@@ -210,8 +209,8 @@ class Wizard(object):
         """Main."""
         self.subMessage()
 
-        for serial in range(1, self.threads + 1):
-            task = Thread(target=self.persistence, args=(serial, ))
+        for num in range(1, self.number + 1):
+            task = Thread(target=self.persistence, args=(num, ))
             task.start()
 
 

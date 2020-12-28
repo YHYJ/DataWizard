@@ -2,7 +2,7 @@
 # 标注了'CHANGED'的是可能需要修改的参数
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
-threads = 30                                # CHANGED: 线程数，为0则取值CPU核心数
+number = 30                                 # CHANGED: 进程或线程数，为0则取值CPU核心数
 
 [source]
 # 数据来源位置
