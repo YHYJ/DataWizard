@@ -390,21 +390,18 @@ class TimescaleWrapper(object):
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = "{column_time}, {column_id}".format(
-                column_time=self.column_time,  # 固有的时间戳列
-                column_id=self.column_id,  # 固有的ID列
-            )
+            columns_name = ",".join([self.column_time, self.column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
             # # 构建COLUMN MARK
-            columns_value_mark: str = "%s, %s"  # 固有的MARK（时间戳和ID）
+            columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
             # # 完善COLUMN NAME和COLUMN MARK
             for column, data in datas[0]['fields'].items():
                 # 完善COLUMN NAME
-                columns_name += ", {column_name}".format(column_name=column)
+                columns_name = ",".join([columns_name, column])
                 # 完善COLUMN MARK
-                columns_value_mark += ", %s"  # 确定MARK的不定长部分长度
+                columns_value_mark = ",".join([columns_value_mark, "%s"])
             # 完善COLUMN VALUE
             for data in datas:
                 for data in data['fields'].values():
@@ -425,23 +422,20 @@ class TimescaleWrapper(object):
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = "{column_time}, {column_id}".format(
-                column_time=self.column_time,  # 固有的时间戳列
-                column_id=self.column_id,  # 固有的ID列
-            )
+            columns_name = ",".join([self.column_time, self.column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
             # # 构建COLUMN MARK
-            columns_value_mark: str = "%s, %s"  # 固有的MARK（时间戳和ID）
+            columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
             # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
             for column, data in datas['fields'].items():
                 # 完善COLUMN NAME
-                columns_name += ", {column_name}".format(column_name=column)
+                columns_name = ",".join([columns_name, column])
                 # 完善COLUMN VALUE
                 column_value.append(data['value'])
                 # 完善COLUMN MARK
-                columns_value_mark += ", %s"
+                columns_value_mark = ",".join([columns_value_mark, "%s"])
             # 合并多个COLUMN VALUE
             columns_value.append(column_value)
         else:
@@ -465,7 +459,7 @@ class TimescaleWrapper(object):
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedTable as warn:
-            # 数据库中不存在指定数据表，尝试创建
+            # 数据库中缺少指定Table，动态创建
             log.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             log.info('Creating schema ...')
@@ -473,8 +467,7 @@ class TimescaleWrapper(object):
             # 尝试创建Hypertable
             log.info('Creating hypertable ...')
             columns = dict()
-            # 根据datas的类型取到它的'fields'
-            # # 因为上面已经做过判断，所以datas只可能是dict或list类型
+            # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
             for key, value in cache['fields'].items():
                 columns.update({key: value['type']})
@@ -487,7 +480,7 @@ class TimescaleWrapper(object):
             self.database.commit()
             log.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
-            # 数据表中缺少某个Column，动态添加
+            # 数据表中缺少指定Column，动态创建
             log.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
             log.info('Adding column ...')
