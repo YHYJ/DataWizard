@@ -46,7 +46,7 @@ data_storage = 'timescale'                  # CHANGED: 数据持久化方案，�
         fork_log = false                    # CHANGED: 是否要将数据中的日志类信息集中到独立的log表里
         log_schema = 'monitor'              # CHANGED: 独立log的schema
         log_table = 'log'                   # CHANGED: 独立log的table
-        log_column = [                      # CHANGED: 独立log的column 
+        log_column = [                      # CHANGED: 独立log的column
             'message', 'level',
             'source', 'logpath'
         ]
