@@ -16,7 +16,6 @@ import time
 from queue import Queue
 from threading import Thread
 
-#  import paho.mqtt.client as Mqtt
 import toml
 
 from utils.log_wrapper import setupLogging

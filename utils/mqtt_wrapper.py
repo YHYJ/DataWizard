@@ -12,11 +12,6 @@ Description: 向MQTT bridge发布/订阅消息
 import json
 import logging
 
-try:
-    from queue import Queue
-except Exception:
-    from Queue import Queue
-
 import paho.mqtt.client as Mqtt
 
 log = logging.getLogger(__name__)
