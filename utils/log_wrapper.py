@@ -37,7 +37,7 @@ def setupLogging(conf):
     max_size = conf['max_size']  # size of each local log file
     format_string = conf['format_string']  # log message format
 
-    logger = logging.getLogger('TimescaleWrapper')
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')

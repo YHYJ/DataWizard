@@ -33,7 +33,7 @@ except (ModuleNotFoundError, Exception):
     # 不要使用dbutils.pooled_pg.PooledPg
     from dbutils.pooled_db import PooledDB  # dbutils.__version__ >= 2.0
 
-log = logging.getLogger('TimescaleWrapper')
+logger = logging.getLogger(__name__)
 
 
 class TimescaleWrapper(object):
@@ -226,12 +226,12 @@ class TimescaleWrapper(object):
                 self.database = pool_obj.connection()
                 break
             except OperationalError as err:
-                log.error(
+                logger.error(
                     "TimescaleDB Connection error: {error}".format(error=err))
             except AttributeError:
-                log.error("Pool failed, please check configuration.")
+                logger.error("Pool failed, please check configuration.")
             except Exception as err:
-                log.error(err)
+                logger.error(err)
 
             time.sleep(2)
 
@@ -250,12 +250,12 @@ class TimescaleWrapper(object):
             cursor.execute(SQL)
             self.database.commit()
         except DuplicateSchema as warn:
-            log.warning("Duplicate schema: {warn}".format(warn=warn))
+            logger.warning("Duplicate schema: {warn}".format(warn=warn))
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def createTable(self, schema: str, table: str, columns: dict):
         """创建Table
@@ -301,12 +301,12 @@ class TimescaleWrapper(object):
             cursor.execute(SQL)
             self.database.commit()
         except DuplicateTable as warn:
-            log.warning("Create table: {text}".format(text=warn))
+            logger.warning("Create table: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def createHypertable(self, schema: str, hypertable: str, columns: dict):
         """创建Hypertable
@@ -361,16 +361,16 @@ class TimescaleWrapper(object):
             self.database.commit()
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
-            log.error("Undefined schema: {text}".format(text=warn))
-            log.info('Creating schema ...')
+            logger.error("Undefined schema: {text}".format(text=warn))
+            logger.info('Creating schema ...')
             self.createSchema(schema=schema)
         except DuplicateTable as warn:  # Hypertable已存在
-            log.warning("Duplicate hypertable: {text}".format(text=warn))
+            logger.warning("Duplicate hypertable: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def addColumn(self, schema: str, table: str, datas: dict):
         """添加Column
@@ -420,13 +420,13 @@ class TimescaleWrapper(object):
                     cursor.execute(SQL)
                     self.database.commit()
                 else:
-                    log.error(
+                    logger.error(
                         'Cannot add column, value type is not specified.')
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def insertData(self, datas: list or dict):
         """向数据表批量插入数据
@@ -540,7 +540,7 @@ class TimescaleWrapper(object):
             if 'message' in datas['fields'].keys():
                 SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
         else:
-            log.error("Data type error, 'datas' must be list or dict.")
+            logger.error("Data type error, 'datas' must be list or dict.")
 
         # 构建SQL语句
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
@@ -562,18 +562,18 @@ class TimescaleWrapper(object):
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
             self.database.commit()
-            log.debug('Data inserted successfully.')
+            logger.debug('Data inserted successfully.')
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
-            log.error('Undefined table: {text}'.format(text=warn))
+            logger.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
-            log.info('Creating schema ...')
+            logger.info('Creating schema ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             curr_schema = schema if tag == 0 else self.log_schema
             curr_table = table if tag == 0 else self.log_table
             self.createSchema(schema=curr_schema)
             # 尝试创建Hypertable
-            log.info('Creating hypertable ...')
+            logger.info('Creating hypertable ...')
             columns = dict()
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
@@ -593,12 +593,12 @@ class TimescaleWrapper(object):
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
             self.database.commit()
-            log.debug('Data inserted successfully.')
+            logger.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
-            log.warning('Undefined column: {text}'.format(text=warn))
+            logger.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
-            log.info('Adding column ...')
+            logger.info('Adding column ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             curr_schema = schema if tag == 0 else self.log_schema
             curr_table = table if tag == 0 else self.log_table
@@ -615,12 +615,12 @@ class TimescaleWrapper(object):
             cursor = self.database.cursor()
             cursor.executemany(SQL, columns_value)
             self.database.commit()
-            log.debug('Data inserted successfully.')
+            logger.debug('Data inserted successfully.')
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def queryData(self,
                   schema: str,
@@ -657,12 +657,12 @@ class TimescaleWrapper(object):
             result = cursor.fetchall()
             self.database.commit()
         except (UndefinedTable, UndefinedColumn) as warn:
-            log.error('Query error: {text}'.format(text=warn))
+            logger.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
         return result
 
@@ -679,10 +679,10 @@ class TimescaleWrapper(object):
             self.database.commit()
             print(data)
         except (OperationalError, InterfaceError):
-            log.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
 
 if __name__ == "__main__":
