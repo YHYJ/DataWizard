@@ -1,0 +1,40 @@
+# File: docker-compose.yml
+# Author: YJ
+# Email: yj1516268@outlook.com
+# Created Time: 2020-12-29 11:49:32
+
+# Description:
+
+version: '3'
+services:
+  DataWizard:
+    image: 'yhyj/python-db:base-python-alpine'
+    container_name: 'DataWizard'
+    hostname: 'DataWizard-docker'
+    restart: 'unless-stopped'  # no, unless-stopped, always, on-failure:<max-retries>
+    privileged: false
+    working_dir: '/opt/DataWizard'
+    command: 'python main.py'
+    volumes:
+      - '$PWD/main.py:/opt/DataWizard/main.py'
+      - '$PWD/logs:/opt/DataWizard/logs'
+      - '$PWD/conf:/opt/DataWizard/conf'
+      - '$PWD/utils:/opt/DataWizard/utils'
+    networks:
+      DataWizard: {}
+    environment:
+      TZ: 'Asia/Shanghai'
+    labels:
+      servicename: 'DataWizard'
+    logging:
+      driver: 'json-file'      # none, local, json-file(default), ...
+      options:
+        max-size: '10m'
+        max-file: '3'
+        tag: '{{.Name}}/{{.ID}}/{{.ImageName}}/{{.ImageID}}'
+        labels: 'servicename'
+
+
+networks:
+  DataWizard:
+    name: 'DataWizard'
