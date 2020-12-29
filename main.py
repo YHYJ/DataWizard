@@ -34,7 +34,7 @@ class Wizard(object):
         # [main] - Dizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
-        self.number = conf.get('number') if conf.get(
+        self.number = main_conf.get('number') if main_conf.get(
             'number', 0) > 0 else os.cpu_count()
         data_source = main_conf.get('data_source', 'mqtt')
         data_storage = main_conf.get('data_storage', 'timescale')
