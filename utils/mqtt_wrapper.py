@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 class MqttWrapper(object):
     """Communicate with MQTT."""
-    def __init__(self, conf):
+    def __init__(self, conf, queues):
         """Initialization.
 
         :conf: Configuration info
@@ -41,7 +41,7 @@ class MqttWrapper(object):
         self._keepalive: int = conf.get('keepalive', 60)
 
         # queue
-        self.sub_queue = Queue()
+        self.queues = queues
 
         # MQTT client
         self._client = None
@@ -165,7 +165,7 @@ class MqttWrapper(object):
 
         """
         msg = message.payload
-        self.sub_queue.put(msg)
+        self.queues.put(msg)
 
     def pubMessage(self, pub_queue):
         """Publish message to MQTT bridge."""
@@ -183,8 +183,8 @@ class MqttWrapper(object):
     def subMessage(self):
         """Subscribe to data from MQTT bridge."""
         try:
-            self._client.loop_start()
             for topic in self._topics:
                 self._client.subscribe(topic=topic, qos=self._qos)
+            self._client.loop_start()
         except Exception as err:
             log.error(err)
