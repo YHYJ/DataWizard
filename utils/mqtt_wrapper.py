@@ -26,14 +26,14 @@ class MqttWrapper(object):
 
         """
         # MQTT
-        self._hostname: str = conf.get('host', '127.0.0.1')
-        self._port: int = conf.get('port', 1883)
-        self._username: str = conf.get('username', None)
-        self._password: str = conf.get('password', None)
-        self._client_id: str = conf.get('client_id', str())
-        self._topics: list = conf.get('topics', list())
-        self._qos: int = conf.get('qos', 2)
-        self._keepalive: int = conf.get('keepalive', 60)
+        self._hostname = conf.get('host', '127.0.0.1')
+        self._port = conf.get('port', 1883)
+        self._username = conf.get('username', None)
+        self._password = conf.get('password', None)
+        self._client_id = conf.get('client_id', str())
+        self._topics = conf.get('topics', list())
+        self._qos = conf.get('qos', 2)
+        self._keepalive = conf.get('keepalive', 60)
 
         # queue
         self.queues = queues
@@ -162,7 +162,7 @@ class MqttWrapper(object):
         msg = message.payload
         self.queues.put(msg)
 
-    def pubMessage(self, pub_queue):
+    def pub_message(self, pub_queue):
         """Publish message to MQTT bridge."""
         try:
             self._client.loop_start()
@@ -175,7 +175,7 @@ class MqttWrapper(object):
         except Exception as err:
             log.error(err)
 
-    def subMessage(self):
+    def sub_message(self):
         """Subscribe to data from MQTT bridge."""
         try:
             for topic in self._topics:

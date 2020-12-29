@@ -8,8 +8,6 @@
 
 <!-- vim-markdown-toc GFM -->
 
-* [MQTT](#mqtt)
-    * [Topic](#topic)
 * [DataWizard](#datawizard)
 
 <!-- vim-markdown-toc -->
@@ -29,14 +27,6 @@
 [psycopg2批量插入方法对比](https://blog.csdn.net/china1987427/article/details/95120023)
 
 ---
-
-## MQTT
-
-### Topic
-
-- 每个设备一个
-
-  > 暂定和表名一致，例如'device_ATLAS_01'或者'device/ATLAS/01'
 
 ## DataWizard
 

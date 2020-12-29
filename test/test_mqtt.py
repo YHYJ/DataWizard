@@ -14,13 +14,13 @@ import sys
 import toml
 
 sys.path.append('..')
-from utils.log_wrapper import setupLogging
+from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
 
 confile = '../conf/conf.toml'
 conf = toml.load(confile)
 
-setupLogging(conf['log'])
+setup_logging(conf['log'])
 
 mqtt = MqttWrapper(conf['source']['mqtt'])
 mqtt.subMessage()

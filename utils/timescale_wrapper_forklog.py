@@ -58,39 +58,39 @@ class TimescaleWrapper(object):
 
         """
         # Database连接参数配置
-        self.host: str = conf.get('host', '127.0.0.1')
-        self.port: int = conf.get('port', 5432)
-        self.user: str = conf.get('user', None)
-        self.password: str = conf.get('password', None)
-        self.dbname: str = conf.get('dbname', None)
+        self._host = conf.get('host', '127.0.0.1')
+        self._port = conf.get('port', 5432)
+        self._user = conf.get('user', None)
+        self._password = conf.get('password', None)
+        self._dbname = conf.get('dbname', None)
 
         # Database.Pool配置
-        pool_conf: dict = conf.get('pool', dict())
-        self.mincached: int = pool_conf.get('mincached', 10)
-        self.maxcached: int = pool_conf.get('maxcached', 0)
-        self.maxshared: int = pool_conf.get('maxshared', 0)
-        self.maxconnections = pool_conf.get('maxconnections', 0)
-        self.blocking: bool = pool_conf.get('blocking', True)
-        self.maxusage: int = pool_conf.get('maxusage', 0)
-        self.ping: int = pool_conf.get('ping', 1)
+        pool_conf = conf.get('pool', dict())
+        self._mincached = pool_conf.get('mincached', 10)
+        self._maxcached = pool_conf.get('maxcached', 0)
+        self._maxshared = pool_conf.get('maxshared', 0)
+        self._maxconnections = pool_conf.get('maxconnections', 0)
+        self._blocking = pool_conf.get('blocking', True)
+        self._maxusage = pool_conf.get('maxusage', 0)
+        self._ping = pool_conf.get('ping', 1)
 
         # Database.Table配置
-        table_conf: dict = conf.get('table', dict())
-        self.column_time: str = table_conf.get('column_time', 'timestamp')
-        self.column_id: str = table_conf.get('column_id', 'id')
+        table_conf = conf.get('table', dict())
+        self._column_time = table_conf.get('column_time', 'timestamp')
+        self._column_id = table_conf.get('column_id', 'id')
 
         # 日志数据配置
-        log_conf: dict = conf.get('log', dict())
-        self.fork_log: bool = log_conf.get('fork_log', False)
-        self.log_schema: str = log_conf.get('log_schema', 'monitor')
-        self.log_table: str = log_conf.get('log_table', 'log')
-        self.log_column: str = log_conf.get('log_column', list())
+        log_conf = conf.get('log', dict())
+        self._fork_switch = log_conf.get('fork_switch', False)
+        self._log_schema = log_conf.get('log_schema', 'monitor')
+        self._log_table = log_conf.get('log_table', 'log')
+        self._log_column = log_conf.get('log_column', list())
 
         # 创建TimescaleDB连接对象
-        self.database = None
+        self._database = None
         self.connect()
 
-    def _createPool(self):
+    def _create_pool(self):
         """创建TimescaleDB连接池
 
         用于DBUtils连接池的参数有：
@@ -106,23 +106,243 @@ class TimescaleWrapper(object):
         pool = PooledDB(
             # DBUtils参数
             creator=psycopg2,
-            mincached=self.mincached,
-            maxcached=self.maxcached,
-            maxshared=self.maxshared,
-            maxconnections=self.maxconnections,
-            blocking=self.blocking,
-            maxusage=self.maxusage,
-            ping=self.ping,
+            mincached=self._mincached,
+            maxcached=self._maxcached,
+            maxshared=self._maxshared,
+            maxconnections=self._maxconnections,
+            blocking=self._blocking,
+            maxusage=self._maxusage,
+            ping=self._ping,
             # psycopg2参数
-            host=self.host,
-            port=self.port,
-            user=self.user,
-            password=self.password,
-            dbname=self.dbname)
+            host=self._host,
+            port=self._port,
+            user=self._user,
+            password=self._password,
+            dbname=self._dbname)
 
         return pool
 
-    def _forkLog(self, datas: dict):
+    def _reconnect(self):
+        """重开与TimescaleDB的连接"""
+        if not self._database._closed:
+            self._database.close()
+        self.connect()
+
+    def connect(self):
+        """从连接池中获取一个TimescaleDB连接对象
+
+        :returns: TimescaleDB连接对象
+
+        """
+        while True:
+            try:
+                pool_obj = self._create_pool()
+                self._database = pool_obj.connection()
+                break
+            except OperationalError as err:
+                logger.error(
+                    "TimescaleDB Connection error: {error}".format(error=err))
+            except AttributeError:
+                logger.error("Pool failed, please check configuration.")
+            except Exception as err:
+                logger.error(err)
+
+            time.sleep(2)
+
+    def create_schema(self, schema):
+        """创建Schema
+
+        :schema: 要创建的Schema名
+
+        """
+        # 构建SQL语句
+        SQL = "CREATE SCHEMA {schema};".format(schema=schema)
+
+        # 执行SQL语句
+        try:
+            cursor = self._database.cursor()
+            cursor.execute(SQL)
+            self._database.commit()
+        except DuplicateSchema as warn:
+            logger.warning("Duplicate schema: {warn}".format(warn=warn))
+        except (OperationalError, InterfaceError):
+            logger.error('Reconnect to the TimescaleDB ...')
+            self._reconnect()
+        except Exception as err:
+            logger.error(err)
+
+    def create_table(self, schema, table, columns):
+        """创建Table
+
+        非超表（时序表）
+
+        :schema: 使用的Schema名
+        :table: 要创建的Table名
+        :columns: Column名及其数据类型
+               columns = {
+                             'column1': 'int',
+                             'column2': 'float',
+                             'column3': 'str',
+                             ... ...
+                         }
+
+        """
+        # 构建SQL语句
+        columns_name = "id SERIAL PRIMARY KEY"
+        for column, type_ in columns.items():
+            if type_ in ['int', 'float']:
+                # int和float类型的数据默认存储为DOUBLE PRECISION
+                columns_name = ("{curr_columns}, "
+                                "{new_columns} {attr_1} {attr_2}").format(
+                                    curr_columns=columns_name,
+                                    new_columns=column,
+                                    attr_1='DOUBLE PRECISION',
+                                    attr_2='NULL')
+            elif type_ in ['str']:
+                # str类型的数据默认存储为VARCHAR
+                columns_name = ("{curr_columns}, "
+                                "{new_columns} {attr_1} {attr_2}").format(
+                                    curr_columns=columns_name,
+                                    new_columns=column,
+                                    attr_1='VARCHAR',
+                                    attr_2='NULL')
+        SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
+            schema_name=schema, table_name=table, columns=columns_name)
+
+        # 执行SQL语句
+        try:
+            cursor = self._database.cursor()
+            cursor.execute(SQL)
+            self._database.commit()
+        except DuplicateTable as warn:
+            logger.warning("Create table: {text}".format(text=warn))
+        except (OperationalError, InterfaceError):
+            logger.error('Reconnect to the TimescaleDB ...')
+            self._reconnect()
+        except Exception as err:
+            logger.error(err)
+
+    def create_hypertable(self, schema, hypertable, columns):
+        """创建Hypertable
+
+        :schema: 使用的Schema名
+        :hypertable: 要创建的Hypertable名
+        :columns: Column名及其数据类型
+                  columns = {
+                                'column1': 'int',
+                                'column2': 'float',
+                                'column3': 'str',
+                                ... ...
+                            }
+
+        """
+        # 构建SQL语句
+        columns_name = ("{column_time} TIMESTAMP NOT NULL, "
+                        "{column_id} VARCHAR NOT NULL").format(
+                            column_time=self._column_time,
+                            column_id=self._column_id)
+        for column, type_ in columns.items():
+            if type_ in ['int', 'float']:
+                # int和float类型的数据默认存储为DOUBLE PRECISION
+                columns_name = ("{curr_columns}, "
+                                "{new_columns} {attr_1} {attr_2}").format(
+                                    curr_columns=columns_name,
+                                    new_columns=column,
+                                    attr_1='DOUBLE PRECISION',
+                                    attr_2='NULL')
+            elif type_ in ['str']:
+                # str类型的数据默认存储为VARCHAR
+                columns_name = ("{curr_columns}, "
+                                "{new_columns} {attr_1} {attr_2}").format(
+                                    curr_columns=columns_name,
+                                    new_columns=column,
+                                    attr_1='VARCHAR',
+                                    attr_2='NULL')
+
+        SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
+            schema_name=schema, table_name=hypertable, columns=columns_name)
+        SQL_HYPERTABLE = ("SELECT create_hypertable("
+                          "'{schema_name}.{table_name}', "
+                          "'{column_time}');").format(
+                              schema_name=schema,
+                              table_name=hypertable,
+                              column_time=self._column_time)
+        # 执行SQL语句
+        try:
+            cursor = self._database.cursor()
+            cursor.execute(SQL)
+            cursor.execute(SQL_HYPERTABLE)
+            self._database.commit()
+        except InvalidSchemaName as warn:  # Schema不存在
+            # 尝试创建Schema
+            logger.error("Undefined schema: {text}".format(text=warn))
+            logger.info('Creating schema ...')
+            self.create_schema(schema=schema)
+        except DuplicateTable as warn:  # Hypertable已存在
+            logger.warning("Duplicate hypertable: {text}".format(text=warn))
+        except (OperationalError, InterfaceError):
+            logger.error('Reconnect to the TimescaleDB ...')
+            self._reconnect()
+        except Exception as err:
+            logger.error(err)
+
+    def add_column(self, schema, table, datas):
+        """添加Column
+
+        :schema: 使用的Schema名
+        :table: 使用的Table名
+        :datas: Column名及其数据类型
+                datas = {
+                            'column1': {
+                                'type': 'int'
+                                ... ...
+                            },
+                            'column2': {
+                                'type': 'float',
+                                ... ...
+                            },
+                            'column3': {
+                                'type': 'str'
+                                ... ...
+                            }
+                            ... ...
+                        }
+
+        """
+        try:
+            cursor = self._database.cursor()
+            # TimescaleDB限制了一次只能新增一列
+            for key, value in datas.items():
+                # 处理没指定type的情况
+                if 'type' in value.keys():
+                    # 构建SQL语句
+                    if value['type'] in ['int', 'float']:
+                        # int和float类型的数据默认存储为DOUBLE PRECISION
+                        data_type = 'DOUBLE PRECISION'
+                    else:
+                        data_type = 'VARCHAR'
+
+                    SQL = (
+                        "ALTER TABLE {schema_name}.{table_name} "
+                        "ADD COLUMN IF NOT EXISTS {column_name} {data_type};"
+                    ).format(schema_name=schema,
+                             table_name=table,
+                             column_name=key,
+                             data_type=data_type)
+
+                    # 执行SQL语句
+                    cursor.execute(SQL)
+                    self._database.commit()
+                else:
+                    logger.error(
+                        'Cannot add column, value type is not specified.')
+        except (OperationalError, InterfaceError):
+            logger.error('Reconnect to the TimescaleDB ...')
+            self._reconnect()
+        except Exception as err:
+            logger.error(err)
+
+    def fork_log(self, datas):
         """Fork日志信息到一个独立的数据表
 
         :datas: 包含日志信息的数据，dict类型
@@ -170,19 +390,19 @@ class TimescaleWrapper(object):
         columns_value = list()  # 多个COLUMN VALUE field
 
         # timestamp/id value
-        timestamp = "{ts_field}".format(ts_field=datas.get(self.column_time))
-        id_ = "{id_name}".format(id_name=datas.get(self.column_id))
+        timestamp = "{ts_field}".format(ts_field=datas.get(self._column_time))
+        id_ = "{id_name}".format(id_name=datas.get(self._column_id))
 
         # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
         # # 构建COLUMN NAME（固有列）
-        columns_name = ",".join([self.column_time, self.column_id])
+        columns_name = ",".join([self._column_time, self._column_id])
         # # 构建COLUMN VALUE
         column_value.append(timestamp)  # 固有的时间戳列
         column_value.append(id_)  # 固有的ID列
         # # 构建COLUMN MARK
         columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
         # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
-        for column in self.log_column:
+        for column in self._log_column:
             if column in datas['fields'].keys():
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
@@ -199,8 +419,8 @@ class TimescaleWrapper(object):
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
                "VALUES ({column_value});").format(
                    # SCHEMA.TABLE
-                   schema_name=self.log_schema,
-                   table_name=self.log_table,
+                   schema_name=self._log_schema,
+                   table_name=self._log_table,
                    # COLUMN NAME
                    column_name=columns_name,
                    # COLUMN VALUE
@@ -208,232 +428,12 @@ class TimescaleWrapper(object):
 
         return SQL, columns_value
 
-    def _reconnect(self):
-        """重开与TimescaleDB的连接"""
-        if not self.database._closed:
-            self.database.close()
-        self.connect()
-
-    def connect(self):
-        """从连接池中获取一个TimescaleDB连接对象
-
-        :returns: TimescaleDB连接对象
-
-        """
-        while True:
-            try:
-                pool_obj = self._createPool()
-                self.database = pool_obj.connection()
-                break
-            except OperationalError as err:
-                logger.error(
-                    "TimescaleDB Connection error: {error}".format(error=err))
-            except AttributeError:
-                logger.error("Pool failed, please check configuration.")
-            except Exception as err:
-                logger.error(err)
-
-            time.sleep(2)
-
-    def createSchema(self, schema: str):
-        """创建Schema
-
-        :schema: 要创建的Schema名
-
-        """
-        # 构建SQL语句
-        SQL = "CREATE SCHEMA {schema};".format(schema=schema)
-
-        # 执行SQL语句
-        try:
-            cursor = self.database.cursor()
-            cursor.execute(SQL)
-            self.database.commit()
-        except DuplicateSchema as warn:
-            logger.warning("Duplicate schema: {warn}".format(warn=warn))
-        except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
-            self._reconnect()
-        except Exception as err:
-            logger.error(err)
-
-    def createTable(self, schema: str, table: str, columns: dict):
-        """创建Table
-
-        非超表（时序表）
-
-        :schema: 使用的Schema名
-        :table: 要创建的Table名
-        :columns: Column名及其数据类型
-               columns = {
-                             'column1': 'int',
-                             'column2': 'float',
-                             'column3': 'str',
-                             ... ...
-                         }
-
-        """
-        # 构建SQL语句
-        columns_name = "id SERIAL PRIMARY KEY"
-        for column, type_ in columns.items():
-            if type_ in ['int', 'float']:
-                # int和float类型的数据默认存储为DOUBLE PRECISION
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='DOUBLE PRECISION',
-                                    attr_2='NULL')
-            elif type_ in ['str']:
-                # str类型的数据默认存储为VARCHAR
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='VARCHAR',
-                                    attr_2='NULL')
-        SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
-            schema_name=schema, table_name=table, columns=columns_name)
-
-        # 执行SQL语句
-        try:
-            cursor = self.database.cursor()
-            cursor.execute(SQL)
-            self.database.commit()
-        except DuplicateTable as warn:
-            logger.warning("Create table: {text}".format(text=warn))
-        except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
-            self._reconnect()
-        except Exception as err:
-            logger.error(err)
-
-    def createHypertable(self, schema: str, hypertable: str, columns: dict):
-        """创建Hypertable
-
-        :schema: 使用的Schema名
-        :hypertable: 要创建的Hypertable名
-        :columns: Column名及其数据类型
-                  columns = {
-                                'column1': 'int',
-                                'column2': 'float',
-                                'column3': 'str',
-                                ... ...
-                            }
-
-        """
-        # 构建SQL语句
-        columns_name = ("{column_time} TIMESTAMP NOT NULL, "
-                        "{column_id} VARCHAR NOT NULL").format(
-                            column_time=self.column_time,
-                            column_id=self.column_id)
-        for column, type_ in columns.items():
-            if type_ in ['int', 'float']:
-                # int和float类型的数据默认存储为DOUBLE PRECISION
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='DOUBLE PRECISION',
-                                    attr_2='NULL')
-            elif type_ in ['str']:
-                # str类型的数据默认存储为VARCHAR
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='VARCHAR',
-                                    attr_2='NULL')
-
-        SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
-            schema_name=schema, table_name=hypertable, columns=columns_name)
-        SQL_HYPERTABLE = ("SELECT create_hypertable("
-                          "'{schema_name}.{table_name}', "
-                          "'{column_time}');").format(
-                              schema_name=schema,
-                              table_name=hypertable,
-                              column_time=self.column_time)
-        # 执行SQL语句
-        try:
-            cursor = self.database.cursor()
-            cursor.execute(SQL)
-            cursor.execute(SQL_HYPERTABLE)
-            self.database.commit()
-        except InvalidSchemaName as warn:  # Schema不存在
-            # 尝试创建Schema
-            logger.error("Undefined schema: {text}".format(text=warn))
-            logger.info('Creating schema ...')
-            self.createSchema(schema=schema)
-        except DuplicateTable as warn:  # Hypertable已存在
-            logger.warning("Duplicate hypertable: {text}".format(text=warn))
-        except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
-            self._reconnect()
-        except Exception as err:
-            logger.error(err)
-
-    def addColumn(self, schema: str, table: str, datas: dict):
-        """添加Column
-
-        :schema: 使用的Schema名
-        :table: 使用的Table名
-        :datas: Column名及其数据类型
-                datas = {
-                            'column1': {
-                                'type': 'int'
-                                ... ...
-                            },
-                            'column2': {
-                                'type': 'float',
-                                ... ...
-                            },
-                            'column3': {
-                                'type': 'str'
-                                ... ...
-                            }
-                            ... ...
-                        }
-
-        """
-        try:
-            cursor = self.database.cursor()
-            # TimescaleDB限制了一次只能新增一列
-            for key, value in datas.items():
-                # 处理没指定type的情况
-                if 'type' in value.keys():
-                    # 构建SQL语句
-                    if value['type'] in ['int', 'float']:
-                        # int和float类型的数据默认存储为DOUBLE PRECISION
-                        data_type = 'DOUBLE PRECISION'
-                    else:
-                        data_type = 'VARCHAR'
-
-                    SQL = (
-                        "ALTER TABLE {schema_name}.{table_name} "
-                        "ADD COLUMN IF NOT EXISTS {column_name} {data_type};"
-                    ).format(schema_name=schema,
-                             table_name=table,
-                             column_name=key,
-                             data_type=data_type)
-
-                    # 执行SQL语句
-                    cursor.execute(SQL)
-                    self.database.commit()
-                else:
-                    logger.error(
-                        'Cannot add column, value type is not specified.')
-        except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
-            self._reconnect()
-        except Exception as err:
-            logger.error(err)
-
-    def insertData(self, datas: list or dict):
+    def insert(self, datas):
         """向数据表批量插入数据
         参数datas类型是list时需要保证其中每个dict的'schema'.'table'一致，且每个dict的'fields'的key相同
 
-        解析参数datas，构建列名字符串columns_name: str和每列的值column_value: list，
-        然后将column_value: list组合成一个大列表columns_value: list，最后构建SQL语句进行批量插入
+        解析参数datas，构建列名字符串columns_name和每列的值column_value，
+        然后将column_value组合成一个大列表columns_value，最后构建SQL语句进行批量插入
 
         :datas: 要插入的数据，可以是元素为dict的list或者单独的dict
                 datas = [{
@@ -480,11 +480,11 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas[0].get(self.column_id))
+            id_ = "{id_name}".format(id_name=datas[0].get(self._column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self.column_time, self.column_id])
+            columns_name = ",".join([self._column_time, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -500,7 +500,7 @@ class TimescaleWrapper(object):
             for data in datas:
                 # 检索处理日志信息，如果'message'是data['fields']的key
                 if 'message' in data['fields'].keys():
-                    SQL_MSG, msgs_columns_value = self._forkLog(datas=data)
+                    SQL_MSG, msgs_columns_value = self.fork_log(datas=data)
                 for data in data['fields'].values():
                     # 构建COLUMN VALUE
                     column_value.append(data['value'])
@@ -515,11 +515,11 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas.get('schema'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas.get(self.column_id))
+            id_ = "{id_name}".format(id_name=datas.get(self._column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self.column_time, self.column_id])
+            columns_name = ",".join([self._column_time, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -538,7 +538,7 @@ class TimescaleWrapper(object):
 
             # 检索处理日志信息，如果'message'是datas['fields']的key
             if 'message' in datas['fields'].keys():
-                SQL_MSG, msgs_columns_value = self._forkLog(datas=datas)
+                SQL_MSG, msgs_columns_value = self.fork_log(datas=datas)
         else:
             logger.error("Data type error, 'datas' must be list or dict.")
 
@@ -555,13 +555,13 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             tag = 0
             cursor.executemany(SQL, columns_value)
             tag = 1
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
@@ -569,9 +569,9 @@ class TimescaleWrapper(object):
             # 尝试创建Schema
             logger.info('Creating schema ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            curr_schema = schema if tag == 0 else self.log_schema
-            curr_table = table if tag == 0 else self.log_table
-            self.createSchema(schema=curr_schema)
+            curr_schema = schema if tag == 0 else self._log_schema
+            curr_table = table if tag == 0 else self._log_table
+            self.create_schema(schema=curr_schema)
             # 尝试创建Hypertable
             logger.info('Creating hypertable ...')
             columns = dict()
@@ -580,19 +580,19 @@ class TimescaleWrapper(object):
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key, value in cache['fields'].items():
                 if tag == 1:
-                    if key in self.log_column:
+                    if key in self._log_column:
                         columns.update({key: value['type']})
                 else:
                     columns.update({key: value['type']})
-            self.createHypertable(schema=curr_schema,
-                                  hypertable=curr_table,
-                                  columns=columns)
+            self.create_hypertable(schema=curr_schema,
+                                   hypertable=curr_table,
+                                   columns=columns)
             # 尝试再次写入数据
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
@@ -600,21 +600,21 @@ class TimescaleWrapper(object):
             # 尝试添加Column
             logger.info('Adding column ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            curr_schema = schema if tag == 0 else self.log_schema
-            curr_table = table if tag == 0 else self.log_table
+            curr_schema = schema if tag == 0 else self._log_schema
+            curr_table = table if tag == 0 else self._log_table
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key in cache['fields'].keys():
-                if tag == 1 and key not in self.log_column:
+                if tag == 1 and key not in self._log_column:
                     cache.pop(key, None)
-            self.addColumn(schema=curr_schema,
-                           table=curr_table,
-                           datas=cache['fields'])
+            self.add_column(schema=curr_schema,
+                            table=curr_table,
+                            datas=cache['fields'])
             # 尝试再次写入数据
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
@@ -622,12 +622,7 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def queryData(self,
-                  schema: str,
-                  table: str,
-                  column='*',
-                  order='id',
-                  limit=5):
+    def query(self, schema, table, column='*', order='id', limit=5):
         """从指定的表查询指定数据
 
         :schema: 查询的Schema
@@ -652,10 +647,10 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
             result = cursor.fetchall()
-            self.database.commit()
+            self._database.commit()
         except (UndefinedTable, UndefinedColumn) as warn:
             logger.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
@@ -673,10 +668,10 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
             data = cursor.fetchall()
-            self.database.commit()
+            self._database.commit()
             print(data)
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
@@ -704,15 +699,15 @@ if __name__ == "__main__":
         # 一条数据有578列
         datas = genesis()
         # 测试插入数据
-        client.insertData(datas=datas)
+        client.insert(datas=datas)
         print('Insert Data')
 
         # 测试查询数据
         columns = 'timestamp,id'
         conf = conf['database']['timescale']
-        result = client.queryData(column=columns,
-                                  schema=datas.get('schema'),
-                                  table=datas.get('table'),
-                                  order=conf['table'].get('column_time'),
-                                  limit=1)
+        result = client.query(column=columns,
+                              schema=datas.get('schema'),
+                              table=datas.get('table'),
+                              order=conf['table'].get('column_time'),
+                              limit=1)
         print('Query result: \n{result}\n'.format(result=result))

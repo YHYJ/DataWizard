@@ -18,7 +18,7 @@ from threading import Thread
 
 import toml
 
-from utils.log_wrapper import setupLogging
+from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
 from utils.timescale_wrapper_forklog import TimescaleWrapper
 
@@ -53,7 +53,7 @@ class Wizard(object):
             self.database = TimescaleWrapper(storage_conf)
 
         # [log] - 日志记录器配置
-        self.logger = setupLogging(conf['log'])
+        self.logger = setup_logging(conf['log'])
 
     def persistence(self, serial):
         """数据持久化
@@ -69,7 +69,7 @@ class Wizard(object):
             data_str = data_bytes.decode('UTF-8')
             data_dict = json.loads(data_str)
             start = time.time()
-            self.database.insertData(data_dict)
+            self.database.insert(data_dict)
             end = time.time()
             self.logger.info(("Thread-{num} got data, queue size = {size} "
                               "<-> Time cost = {tc}s").format(num=serial,
@@ -78,7 +78,7 @@ class Wizard(object):
 
     def wizard(self):
         """Main."""
-        self.mqtt.subMessage()
+        self.mqtt.sub_message()
 
         for num in range(1, self.number + 1):
             task = Thread(target=self.persistence, args=(num, ))

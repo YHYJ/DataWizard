@@ -14,10 +14,10 @@ import logging.handlers
 import os
 
 
-def setupLogging(conf):
+def setup_logging(conf):
     """
     Initialize the logging module settings
-    :param conf: dict, Initialize parameters
+    :param conf, Initialize parameters
     :return: logger
     """
     level = {
@@ -28,14 +28,14 @@ def setupLogging(conf):
         "CRITICAL": logging.CRITICAL
     }
 
-    console = conf['console']  # console output
-    console_level = conf['console_level']  # choose console log level to print
-    file = conf['file']  # local log file output
-    file_level = conf['file_level']  # choose log file level to save
-    logfile = conf['log_file']  # local log file save position
-    backup_count = conf['backup_count']  # count of local log files
-    max_size = conf['max_size']  # size of each local log file
-    format_string = conf['format_string']  # log message format
+    console = conf['console']  # console output?
+    console_level = conf['console_level']  # console log level
+    file = conf['file']  # file output?
+    file_level = conf['file_level']  # file log level
+    logfile = conf['log_file']  # log file save position
+    max_size = conf['max_size']  # size of each log file
+    backup_count = conf['backup_count']  # count of log files
+    format_string = conf['format_string']  # log format
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

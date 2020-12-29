@@ -58,32 +58,32 @@ class TimescaleWrapper(object):
 
         """
         # Database连接参数配置
-        self.host: str = conf.get('host', '127.0.0.1')
-        self.port: int = conf.get('port', 5432)
-        self.user: str = conf.get('user', None)
-        self.password: str = conf.get('password', None)
-        self.dbname: str = conf.get('dbname', None)
+        self._host = conf.get('host', '127.0.0.1')
+        self._port = conf.get('port', 5432)
+        self._user = conf.get('user', None)
+        self._password = conf.get('password', None)
+        self._dbname = conf.get('dbname', None)
 
         # Database.Pool配置
-        pool_conf: dict = conf.get('pool', dict())
-        self.mincached: int = pool_conf.get('mincached', 10)
-        self.maxcached: int = pool_conf.get('maxcached', 0)
-        self.maxshared: int = pool_conf.get('maxshared', 0)
-        self.maxconnections = pool_conf.get('maxconnections', 0)
-        self.blocking: bool = pool_conf.get('blocking', True)
-        self.maxusage: int = pool_conf.get('maxusage', 0)
-        self.ping: int = pool_conf.get('ping', 1)
+        pool_conf = conf.get('pool', dict())
+        self._mincached = pool_conf.get('mincached', 10)
+        self._maxcached = pool_conf.get('maxcached', 0)
+        self._maxshared = pool_conf.get('maxshared', 0)
+        self._maxconnections = pool_conf.get('maxconnections', 0)
+        self._blocking = pool_conf.get('blocking', True)
+        self._maxusage = pool_conf.get('maxusage', 0)
+        self._ping = pool_conf.get('ping', 1)
 
         # Database.Table配置
-        table_conf: dict = conf.get('table', dict())
-        self.column_time: str = table_conf.get('column_time', 'timestamp')
-        self.column_id: str = table_conf.get('column_id', 'id')
+        table_conf = conf.get('table', dict())
+        self._column_time = table_conf.get('column_time', 'timestamp')
+        self._column_id = table_conf.get('column_id', 'id')
 
         # 创建TimescaleDB连接对象
-        self.database = None
+        self._database = None
         self.connect()
 
-    def _createPool(self):
+    def _create_pool(self):
         """创建TimescaleDB连接池
 
         用于DBUtils连接池的参数有：
@@ -99,26 +99,26 @@ class TimescaleWrapper(object):
         pool = PooledDB(
             # DBUtils参数
             creator=psycopg2,
-            mincached=self.mincached,
-            maxcached=self.maxcached,
-            maxshared=self.maxshared,
-            maxconnections=self.maxconnections,
-            blocking=self.blocking,
-            maxusage=self.maxusage,
-            ping=self.ping,
+            mincached=self._mincached,
+            maxcached=self._maxcached,
+            maxshared=self._maxshared,
+            maxconnections=self._maxconnections,
+            blocking=self._blocking,
+            maxusage=self._maxusage,
+            ping=self._ping,
             # psycopg2参数
-            host=self.host,
-            port=self.port,
-            user=self.user,
-            password=self.password,
-            dbname=self.dbname)
+            host=self._host,
+            port=self._port,
+            user=self._user,
+            password=self._password,
+            dbname=self._dbname)
 
         return pool
 
     def _reconnect(self):
         """重开与TimescaleDB的连接"""
-        if not self.database._closed:
-            self.database.close()
+        if not self._database._closed:
+            self._database.close()
         self.connect()
 
     def connect(self):
@@ -129,8 +129,8 @@ class TimescaleWrapper(object):
         """
         while True:
             try:
-                pool_obj = self._createPool()
-                self.database = pool_obj.connection()
+                pool_obj = self._create_pool()
+                self._database = pool_obj.connection()
                 break
             except OperationalError as err:
                 logger.error(
@@ -142,7 +142,7 @@ class TimescaleWrapper(object):
 
             time.sleep(2)
 
-    def createSchema(self, schema: str):
+    def create_schema(self, schema):
         """创建Schema
 
         :schema: 要创建的Schema名
@@ -153,9 +153,9 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
-            self.database.commit()
+            self._database.commit()
         except DuplicateSchema as warn:
             logger.warning("Duplicate schema: {warn}".format(warn=warn))
         except (OperationalError, InterfaceError):
@@ -164,7 +164,7 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def createTable(self, schema: str, table: str, columns: dict):
+    def create_table(self, schema, table, columns):
         """创建Table
 
         非超表（时序表）
@@ -204,9 +204,9 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
-            self.database.commit()
+            self._database.commit()
         except DuplicateTable as warn:
             logger.warning("Create table: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
@@ -215,7 +215,7 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def createHypertable(self, schema: str, hypertable: str, columns: dict):
+    def create_hypertable(self, schema, hypertable, columns):
         """创建Hypertable
 
         :schema: 使用的Schema名
@@ -232,8 +232,8 @@ class TimescaleWrapper(object):
         # 构建SQL语句
         columns_name = ("{column_time} TIMESTAMP NOT NULL, "
                         "{column_id} VARCHAR NOT NULL").format(
-                            column_time=self.column_time,
-                            column_id=self.column_id)
+                            column_time=self._column_time,
+                            column_id=self._column_id)
         for column, type_ in columns.items():
             if type_ in ['int', 'float']:
                 # int和float类型的数据默认存储为DOUBLE PRECISION
@@ -259,18 +259,18 @@ class TimescaleWrapper(object):
                           "'{column_time}');").format(
                               schema_name=schema,
                               table_name=hypertable,
-                              column_time=self.column_time)
+                              column_time=self._column_time)
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
             cursor.execute(SQL_HYPERTABLE)
-            self.database.commit()
+            self._database.commit()
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
             logger.error("Undefined schema: {text}".format(text=warn))
             logger.info('Creating schema ...')
-            self.createSchema(schema=schema)
+            self.create_schema(schema=schema)
         except DuplicateTable as warn:  # Hypertable已存在
             logger.warning("Duplicate hypertable: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
@@ -279,7 +279,7 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def addColumn(self, schema: str, table: str, datas: dict):
+    def add_column(self, schema, table, datas):
         """添加Column
 
         :schema: 使用的Schema名
@@ -303,7 +303,7 @@ class TimescaleWrapper(object):
 
         """
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             # TimescaleDB限制了一次只能新增一列
             for key, value in datas.items():
                 # 处理没指定type的情况
@@ -325,7 +325,7 @@ class TimescaleWrapper(object):
 
                     # 执行SQL语句
                     cursor.execute(SQL)
-                    self.database.commit()
+                    self._database.commit()
                 else:
                     logger.error(
                         'Cannot add column, value type is not specified.')
@@ -335,12 +335,12 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insertData(self, datas: list or dict):
+    def insert(self, datas):
         """向数据表批量插入数据
         参数datas类型是list时需要保证其中每个dict的'schema'.'table'一致，且每个dict的'fields'的key相同
 
-        解析参数datas，构建列名字符串columns_name: str和每列的值column_value: list，
-        然后将column_value: list组合成一个大列表columns_value: list，最后构建SQL语句进行批量插入
+        解析参数datas，构建列名字符串columns_name和每列的值column_value，
+        然后将column_value组合成一个大列表columns_value，最后构建SQL语句进行批量插入
 
         :datas: 要插入的数据，可以是元素为dict的list或者单独的dict
                 datas = [{
@@ -386,11 +386,11 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas[0].get(self.column_id))
+            id_ = "{id_name}".format(id_name=datas[0].get(self._column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self.column_time, self.column_id])
+            columns_name = ",".join([self._column_time, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -418,11 +418,11 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas.get('schema'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas.get(self.column_id))
+            id_ = "{id_name}".format(id_name=datas.get(self._column_id))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self.column_time, self.column_id])
+            columns_name = ",".join([self._column_time, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -454,16 +454,16 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)  # 批量插入
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             logger.info('Creating schema ...')
-            self.createSchema(schema=schema)
+            self.create_schema(schema=schema)
             # 尝试创建Hypertable
             logger.info('Creating hypertable ...')
             columns = dict()
@@ -471,24 +471,24 @@ class TimescaleWrapper(object):
             cache = datas if isinstance(datas, dict) else datas[0]
             for key, value in cache['fields'].items():
                 columns.update({key: value['type']})
-            self.createHypertable(schema=schema,
-                                  hypertable=table,
-                                  columns=columns)
+            self.create_hypertable(schema=schema,
+                                   hypertable=table,
+                                   columns=columns)
             # 尝试再次写入数据
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
             logger.info('Adding column ...')
-            self.addColumn(schema=schema, table=table, datas=datas['fields'])
+            self.add_column(schema=schema, table=table, datas=datas['fields'])
             # 尝试再次写入数据
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
-            self.database.commit()
+            self._database.commit()
             logger.debug('Data inserted successfully.')
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
@@ -496,12 +496,7 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def queryData(self,
-                  schema: str,
-                  table: str,
-                  column='*',
-                  order='id',
-                  limit=5):
+    def query(self, schema, table, column='*', order='id', limit=5):
         """从指定的表查询指定数据
 
         :schema: 查询的Schema
@@ -526,10 +521,10 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
             result = cursor.fetchall()
-            self.database.commit()
+            self._database.commit()
         except (UndefinedTable, UndefinedColumn) as warn:
             logger.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
@@ -547,10 +542,10 @@ class TimescaleWrapper(object):
 
         # 执行SQL语句
         try:
-            cursor = self.database.cursor()
+            cursor = self._database.cursor()
             cursor.execute(SQL)
             data = cursor.fetchall()
-            self.database.commit()
+            self._database.commit()
             print(data)
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
@@ -578,15 +573,15 @@ if __name__ == "__main__":
         # 一条数据有578列
         datas = genesis()
         # 测试插入数据
-        client.insertData(datas=datas)
+        client.insert(datas=datas)
         print('Insert Data')
 
         # 测试查询数据
         columns = 'timestamp,id'
         conf = conf['database']['timescale']
-        result = client.queryData(column=columns,
-                                  schema=datas.get('schema'),
-                                  table=datas.get('table'),
-                                  order=conf['table'].get('column_time'),
-                                  limit=1)
+        result = client.query(column=columns,
+                              schema=datas.get('schema'),
+                              table=datas.get('table'),
+                              order=conf['table'].get('column_time'),
+                              limit=1)
         print('Query result: \n{result}\n'.format(result=result))
