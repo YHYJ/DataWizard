@@ -71,17 +71,18 @@ class Wizard(object):
             start = time.time()
             self.database.insert(data_dict)
             end = time.time()
-            self.logger.info(("Thread-{num} got data, queue size = {size} "
-                              "<-> Time cost = {tc}s").format(num=serial,
-                                                              size=qsize,
-                                                              tc=end - start))
+            self.logger.info(("Got the data, queue size = {size} "
+                              "<--> Time cost = {tc}s").format(size=qsize,
+                                                               tc=end - start))
 
     def wizard(self):
         """Main."""
         self.mqtt.sub_message()
 
         for num in range(1, self.number + 1):
-            task = Thread(target=self.persistence, args=(num, ))
+            task = Thread(target=self.persistence,
+                          args=(num, ),
+                          name='Wizard-{}'.format(num))
             task.start()
 
 
