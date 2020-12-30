@@ -59,11 +59,10 @@ class Wizard(object):
         # [log] - 日志记录器配置
         self.logger = setup_logging(conf['log'])
 
-    def persistence(self, topic, serial=-1):
+    def persistence(self, topic):
         """数据持久化
 
         :topic: topic name
-        :serial: 线程序列号
 
         """
         while True:

@@ -59,11 +59,10 @@ class Wizard(object):
         # [log] - 日志记录器配置
         self.logger = setup_logging(conf['log'])
 
-    def persistence(self, topic, serial):
+    def persistence(self, topic):
         """数据持久化
 
         :topic: topic name
-        :serial: 线程序列号
 
         """
         while True:
@@ -91,10 +90,7 @@ class Wizard(object):
         for topic in self.topics:
             for num in range(1, self.number + 1):
                 task = Thread(target=self.persistence,
-                              args=(
-                                  topic,
-                                  num,
-                              ),
+                              args=(topic, ),
                               name='Wizard-{}'.format(num))
                 task.start()
 
