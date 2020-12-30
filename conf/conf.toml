@@ -3,7 +3,7 @@
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
 [main]
-number = 30                                 # CHANGED: 进程或线程数，为0则取值CPU核心数
+number = 100                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数
 data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
 data_storage = 'timescale'                  # CHANGED: 数据持久化方案，可选值：timescale
 
@@ -15,7 +15,7 @@ data_storage = 'timescale'                  # CHANGED: 数据持久化方案，�
     username = ''                           # CHANGED: 用户名，mqtt允许匿名则留空
     password = ''                           # CHANGED: 密码，mqtt允许匿名则留空
     client_id = ''                          # CHANGED: 客户端ID，为空则使用随机值
-    topics = ['test_topic']                 # FIXME: 发布/订阅的主题
+    topics = ['topic']                      # FIXME: 发布/订阅的主题
     qos = 1                                 # CHANGED: 服务质量，可选值为：0, 1, 2
     keepalive = 60                          # CHANGED: 心跳包发送时间间隔
 

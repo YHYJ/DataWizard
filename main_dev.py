@@ -13,8 +13,8 @@ Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(Timesc
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from threading import Thread
 
 import toml
 
@@ -59,7 +59,7 @@ class Wizard(object):
         # [log] - 日志记录器配置
         self.logger = setup_logging(conf['log'])
 
-    def persistence(self, topic, serial):
+    def persistence(self, topic, serial=-1):
         """数据持久化
 
         :topic: topic name
@@ -87,16 +87,11 @@ class Wizard(object):
         """Main."""
         self.mqtt.sub_message()
 
-        # TODO: 为'test_topic'想一个通用解决方案 <30-12-20, yourname> #
-        for topic in self.topics:
-            for num in range(1, self.number + 1):
-                task = Thread(target=self.persistence,
-                              args=(
-                                  topic,
-                                  num,
-                              ),
-                              name='Wizard-{}'.format(num))
-                task.start()
+        # TODO: 现在是 <30-12-20, YJ> #
+        with ThreadPoolExecutor(max_workers=self.number,
+                                thread_name_prefix='Wizard') as executor:
+            for future in executor.map(self.persistence, self.topics):
+                print(future)
 
 
 if __name__ == "__main__":
