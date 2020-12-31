@@ -86,7 +86,6 @@ class Wizard(object):
         """Main."""
         self.mqtt.sub_message()
 
-        # TODO: 为'test_topic'想一个通用解决方案 <30-12-20, yourname> #
         for topic in self.topics:
             for num in range(1, self.number + 1):
                 task = Thread(target=self.persistence,

@@ -34,8 +34,8 @@ class Wizard(object):
         # [main] - Dizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
-        self.number = main_conf.get('number') if main_conf.get(
-            'number', 0) > 0 else os.cpu_count()
+        self.number = main_conf.get('number') + os.cpu_count(
+        ) if main_conf.get('number', 0) > 0 else os.cpu_count()
         data_source = main_conf.get('data_source', 'mqtt')
         data_storage = main_conf.get('data_storage', 'timescale')
 
@@ -88,10 +88,11 @@ class Wizard(object):
 
     def start_wizard(self):
         """Main."""
-
-        with ThreadPoolExecutor(max_workers=self.number,
+        with ThreadPoolExecutor(max_workers=self.number * len(self.topics),
                                 thread_name_prefix='Wizard') as executor:
-            executor.map(self.persistence, self.topics)
+            executor.map(self.persistence,
+                         self.topics * self.number,
+                         chunksize=len(self.topics))
 
 
 if __name__ == "__main__":

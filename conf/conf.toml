@@ -3,7 +3,7 @@
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
 [main]
-number = 100                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数
+number = 120                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，一般取值为数据点个数即可
 data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
 data_storage = 'timescale'                  # CHANGED: 数据持久化方案，可选值：timescale
 
