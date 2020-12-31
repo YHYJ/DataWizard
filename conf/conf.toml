@@ -3,7 +3,7 @@
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
 [main]
-number = 120                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
+number = 150                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
 data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
 data_storage = 'timescale'                  # CHANGED: 数据持久化方案，可选值：timescale
 
@@ -57,7 +57,7 @@ data_storage = 'timescale'                  # CHANGED: 数据持久化方案，�
 console = true                              # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
 console_level = 'DEBUG'                     # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                 # NOTE: 是否要将log输出到文件中
-file_level = 'DEBUG'                        # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+file_level = 'WARNING'                      # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 log_file = 'logs/log.log'                   # NOTE: log文件存储路径
 max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
 backup_count = 10                           # NOTE: 最大log文件数
