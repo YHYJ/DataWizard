@@ -13,8 +13,8 @@ Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(Timesc
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from threading import Thread
 
 import toml
 
@@ -34,8 +34,8 @@ class Wizard(object):
         # [main] - Dizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
-        self.number = main_conf.get('number') if main_conf.get(
-            'number', 0) > 0 else os.cpu_count()
+        self.number = main_conf.get('number') + os.cpu_count(
+        ) if main_conf.get('number', 0) > 0 else os.cpu_count()
         data_source = main_conf.get('data_source', 'mqtt')
         data_storage = main_conf.get('data_storage', 'timescale')
 
@@ -82,20 +82,23 @@ class Wizard(object):
                                                                size=qsize,
                                                                tc=end - start))
 
-    def wizard(self):
-        """Main."""
+    def start_mqtt(self):
+        """启动Mqtt客户端订阅数据"""
         self.mqtt.sub_message()
 
-        for topic in self.topics:
-            for num in range(1, self.number + 1):
-                task = Thread(target=self.persistence,
-                              args=(topic, ),
-                              name='Wizard-{}'.format(num))
-                task.start()
+    def start_wizard(self):
+        """Main."""
+        with ThreadPoolExecutor(max_workers=self.number * len(self.topics),
+                                thread_name_prefix='Wizard') as executor:
+            executor.map(self.persistence,
+                         self.topics * self.number,
+                         chunksize=len(self.topics))
 
 
 if __name__ == "__main__":
     confile = './conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)
-    wizard.wizard()
+
+    wizard.start_mqtt()
+    wizard.start_wizard()

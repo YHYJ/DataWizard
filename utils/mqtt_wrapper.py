@@ -19,10 +19,11 @@ log = logging.getLogger(__name__)
 
 class MqttWrapper(object):
     """Communicate with MQTT."""
-    def __init__(self, conf, queues):
+    def __init__(self, conf, queue_dict):
         """Initialization.
 
         :conf: Configuration info
+        :queue_dict: data queue, list {Queue1, Queue2, Queue3}
 
         """
         # MQTT
@@ -35,8 +36,8 @@ class MqttWrapper(object):
         self._qos = conf.get('qos', 2)
         self._keepalive = conf.get('keepalive', 60)
 
-        # queue
-        self.queues = queues
+        # {Queue1, Queue2, Queue3}
+        self.queue_dict = queue_dict
 
         # MQTT client
         self._client = None
@@ -159,14 +160,14 @@ class MqttWrapper(object):
                   This is a class with members topic, payload, qos, retain.
 
         """
+        topic = message.topic
         msg = message.payload
-        self.queues.put(msg)
+        self.queue_dict.get(topic).put(msg)
 
-    def pub_message(self, pub_queue):
+    def pub_message(self, msg):
         """Publish message to MQTT bridge."""
         try:
             self._client.loop_start()
-            msg = pub_queue.get()
             payload = json.dumps(msg)
             for topic in self._topics:
                 self._client.publish(topic=topic,
