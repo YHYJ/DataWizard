@@ -59,6 +59,16 @@ class Wizard(object):
         # [log] - 日志记录器配置
         self.logger = setup_logging(conf['log'])
 
+    def convert(self, raw_data):
+        """Convert data
+        :returns: data
+
+        """
+        data_str = raw_data.decode('UTF-8')
+        data = json.loads(data_str)
+
+        return data
+
     def persistence(self, topic):
         """数据持久化
 
@@ -67,20 +77,25 @@ class Wizard(object):
         """
         while True:
             queue = self.queue_dict.get(topic)
-            data_bytes = queue.get()
             qsize = queue.qsize()
-            if qsize >= 6000:
+            if qsize >= 5000:
                 break
-            data_str = data_bytes.decode('UTF-8')
-            data_dict = json.loads(data_str)
-            start = time.time()
-            self.database.insert(data_dict)
-            end = time.time()
-            self.logger.info(("Got the data, "
-                              "Queue ({name}) size = {size} "
-                              "<--> Time cost = {tc}s").format(name=topic,
-                                                               size=qsize,
-                                                               tc=end - start))
+
+            # 1. get data
+            data_bytes = queue.get()
+            # 2. convert data
+            data = self.convert(data_bytes)
+            # TODO: 调用数据解析函数 <31-12-20, YJ> #
+            # 3. insert data
+            _start = time.time()
+            self.database.insert(data)
+            _end = time.time()
+            self.logger.info(
+                ("Got the data, "
+                 "Queue ({name}) size = {size} "
+                 "<--> Time cost = {cost}s").format(name=topic,
+                                                    size=qsize,
+                                                    cost=_end - _start))
 
     def start_mqtt(self):
         """启动Mqtt客户端订阅数据"""
