@@ -14,7 +14,7 @@ import logging
 
 import paho.mqtt.client as Mqtt
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('DataWizard.utils.mqtt_wrapper')
 
 
 class MqttWrapper(object):

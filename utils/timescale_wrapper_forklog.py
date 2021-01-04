@@ -33,7 +33,7 @@ except (ModuleNotFoundError, Exception):
     # 不要使用dbutils.pooled_pg.PooledPg
     from dbutils.pooled_db import PooledDB  # dbutils.__version__ >= 2.0
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('DataWizard.utils.timescale_wrapper')
 
 
 class TimescaleWrapper(object):

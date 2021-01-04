@@ -11,6 +11,7 @@ Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(Timesc
 """
 
 import json
+import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -21,6 +22,8 @@ import toml
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
 from utils.timescale_wrapper_forklog import TimescaleWrapper
+
+logger = logging.getLogger('DataWizard.main')
 
 
 class Wizard(object):
@@ -57,7 +60,7 @@ class Wizard(object):
             self.database = TimescaleWrapper(storage_conf)
 
         # [log] - 日志记录器配置
-        self.logger = setup_logging(conf['log'])
+        setup_logging(conf['log'])
 
     def convert(self, raw_data):
         """Convert data
@@ -90,7 +93,7 @@ class Wizard(object):
             _start = time.time()
             self.database.insert(data)
             _end = time.time()
-            self.logger.info(
+            logger.info(
                 ("Got the data, "
                  "Queue ({name}) size = {size} "
                  "<--> Time cost = {cost}s").format(name=topic,
@@ -111,6 +114,8 @@ class Wizard(object):
 
 
 if __name__ == "__main__":
+    logger.info('Action')
+
     confile = './conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)

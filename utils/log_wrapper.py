@@ -37,7 +37,7 @@ def setup_logging(conf):
     backup_count = conf['backup_count']  # count of log files
     format_string = conf['format_string']  # log format
 
-    logger = logging.getLogger()
+    logger = logging.getLogger('DataWizard')
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(format_string, datefmt='%Y-%m-%d %H:%M:%S')
