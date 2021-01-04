@@ -56,7 +56,7 @@ def start(tag):
             'alien',
             'table':
             'groot',
-            'deviceid':
+            'id':
             'groot',
             'fields': {
                 'x': {
