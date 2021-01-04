@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: data_wrapper.py
+File: parser.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-12-31 17:04:55
@@ -11,7 +11,7 @@ Description: 将数据解析为数据库需要的格式
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('DataWizard.plugins.parser')
 
 
 def data_parser(raw_data, target):

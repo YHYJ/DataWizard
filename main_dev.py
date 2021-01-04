@@ -11,6 +11,7 @@ Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(Timesc
 """
 
 import json
+import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -21,6 +22,8 @@ import toml
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
 from utils.timescale_wrapper_forklog import TimescaleWrapper
+
+logger = logging.getLogger('DataWizard.main')
 
 
 class Wizard(object):
@@ -57,7 +60,7 @@ class Wizard(object):
             self.database = TimescaleWrapper(storage_conf)
 
         # [log] - 日志记录器配置
-        self.logger = setup_logging(conf['log'])
+        setup_logging(conf['log'])
 
     def convert(self, raw_data):
         """Convert data
@@ -77,25 +80,22 @@ class Wizard(object):
         """
         while True:
             queue = self.queue_dict.get(topic)
-            qsize = queue.qsize()
-            if qsize >= 5000:
-                break
-
-            # 1. get data
             data_bytes = queue.get()
-            # 2. convert data
+            qsize = queue.qsize()
+
             data = self.convert(data_bytes)
             # TODO: 调用数据解析函数 <31-12-20, YJ> #
-            # 3. insert data
             _start = time.time()
             self.database.insert(data)
             _end = time.time()
-            self.logger.info(
+            logger.info(
                 ("Got the data, "
                  "Queue ({name}) size = {size} "
                  "<--> Time cost = {cost}s").format(name=topic,
                                                     size=qsize,
                                                     cost=_end - _start))
+            if qsize >= 5000:
+                break
 
     def start_mqtt(self):
         """启动Mqtt客户端订阅数据"""
@@ -111,6 +111,8 @@ class Wizard(object):
 
 
 if __name__ == "__main__":
+    logger.info('Action')
+
     confile = './conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)
