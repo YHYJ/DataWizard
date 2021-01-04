@@ -80,16 +80,11 @@ class Wizard(object):
         """
         while True:
             queue = self.queue_dict.get(topic)
-            qsize = queue.qsize()
-            if qsize >= 5000:
-                break
-
-            # 1. get data
             data_bytes = queue.get()
-            # 2. convert data
+            qsize = queue.qsize()
+
             data = self.convert(data_bytes)
             # TODO: 调用数据解析函数 <31-12-20, YJ> #
-            # 3. insert data
             _start = time.time()
             self.database.insert(data)
             _end = time.time()
@@ -99,6 +94,8 @@ class Wizard(object):
                  "<--> Time cost = {cost}s").format(name=topic,
                                                     size=qsize,
                                                     cost=_end - _start))
+            if qsize >= 5000:
+                break
 
     def start_mqtt(self):
         """启动Mqtt客户端订阅数据"""
