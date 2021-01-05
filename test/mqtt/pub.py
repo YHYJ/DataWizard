@@ -49,22 +49,48 @@ def start(tag):
     # 发布数据
     client.loop_start()
     while True:
+        ts = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        chaos = round(random.uniform(0, 999), 9)
         data = {
-            'timestamp':
-            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
-            'schema':
-            'alien',
-            'table':
-            'groot',
-            'deviceid':
-            'groot',
+            'timestamp': ts,
+            'schema': 'alien',
+            'table': 'groot',
+            'id': 'groot',
             'fields': {
                 'x': {
                     'name': 'x',
                     'title': 'X轴',
-                    'value': round(random.uniform(0, 100), 1),
+                    'value': chaos,
                     'type': 'float',
-                    'unit': 'mm'
+                    'unit': 'mm',
+                },
+                'message': {
+                    'name': 'message',
+                    'title': '日志信息',
+                    'value': '当前值{}'.format(chaos),
+                    'type': 'str',
+                    'unit': None,
+                },
+                'source': {
+                    'name': 'source',
+                    'title': '日志来源',
+                    'value': 'TCP',
+                    'type': 'str',
+                    'unit': None,
+                },
+                'level': {
+                    'name': 'level',
+                    'title': '日志等级',
+                    'value': 1,
+                    'type': 'int',
+                    'unit': None,
+                },
+                'logpath': {
+                    'name': 'logpath',
+                    'title': '日志路径',
+                    'value': '',
+                    'type': 'str',
+                    'unit': None,
                 },
             }
         }

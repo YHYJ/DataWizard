@@ -34,13 +34,15 @@ class Wizard(object):
         :conf: 总配置信息
 
         """
+        self.conf = conf
+
         # [main] - Dizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
         self.number = main_conf.get('number') + os.cpu_count(
         ) if main_conf.get('number', 0) > 0 else os.cpu_count()
         data_source = main_conf.get('data_source', 'mqtt')
-        data_storage = main_conf.get('data_storage', 'timescale')
+        data_storage = main_conf.get('data_storage', 'timescaledb')
 
         # 主要配置部分
         source_conf = conf['source'].get(data_source, dict())
@@ -56,10 +58,10 @@ class Wizard(object):
             self.mqtt = MqttWrapper(source_conf, self.queue_dict)
 
         # [storage] - 数据去处配置
-        if data_storage == 'timescale':
+        if data_storage == 'timescaledb':
             self.database = TimescaleWrapper(storage_conf)
 
-        # [log] - 日志记录器配置
+        # [log] - Log记录器配置
         setup_logging(conf['log'])
 
     def convert(self, raw_data):
