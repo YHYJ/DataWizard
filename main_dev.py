@@ -19,7 +19,6 @@ from queue import Queue
 
 import toml
 
-from plugins.parser import data_parser
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
 from utils.timescale_wrapper_forklog import TimescaleWrapper
@@ -62,7 +61,7 @@ class Wizard(object):
         if data_storage == 'timescaledb':
             self.database = TimescaleWrapper(storage_conf)
 
-        # [log] - 日志记录器配置
+        # [log] - Log记录器配置
         setup_logging(conf['log'])
 
     def convert(self, raw_data):
@@ -88,9 +87,6 @@ class Wizard(object):
 
             data = self.convert(data_bytes)
             # TODO: 调用数据解析函数 <31-12-20, YJ> #
-            SQL, value_rows = data_parser(data, self.conf)
-            logger.debug(SQL)
-            logger.debug(value_rows)
             _start = time.time()
             self.database.insert(data)
             _end = time.time()
