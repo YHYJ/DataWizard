@@ -81,7 +81,7 @@ class TimescaleWrapper(object):
 
         # 日志数据配置
         log_conf = conf.get('log', dict())
-        self._fork_switch = log_conf.get('fork_switch', False)
+        self._log_switch = log_conf.get('log_switch', False)
         self._log_schema = log_conf.get('log_schema', 'public')
         self._log_table = log_conf.get('log_table', 'log')
         self._log_column = log_conf.get('log_column', list())
