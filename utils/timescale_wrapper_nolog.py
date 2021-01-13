@@ -382,7 +382,8 @@ class TimescaleWrapper(object):
 
         if isinstance(datas, (list, types.GeneratorType)):
             # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
+            schema = "{schema_name}".format(
+                schema_name=datas[0].get('schema', 'public'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
             id_ = "{id_name}".format(id_name=datas[0].get(self._column_id))
@@ -414,7 +415,8 @@ class TimescaleWrapper(object):
                 column_value.append(id_)  # 固有的ID列
         elif isinstance(datas, dict):
             # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(schema_name=datas.get('schema'))
+            schema = "{schema_name}".format(
+                schema_name=datas.get('schema', 'public'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
             id_ = "{id_name}".format(id_name=datas.get(self._column_id))

@@ -47,7 +47,7 @@ data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，�
         [storage.timescaledb.log]
         # 是否要处理数据中的日志信息
         fork_switch = false                 # CHANGED: 是否要将数据中的日志类信息集中到独立的log表里
-        log_schema = 'monitor'              # CHANGED: 独立log的schema
+        log_schema = 'public'               # CHANGED: 独立log的schema
         log_table = 'log'                   # CHANGED: 独立log的table
         log_flag = 'message'                # CHANGED: 日志信息的键名，用来判断是否采集到了日志信息
         log_column = [                      # CHANGED: 独立log的column

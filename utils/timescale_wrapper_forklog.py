@@ -82,7 +82,7 @@ class TimescaleWrapper(object):
         # 日志数据配置
         log_conf = conf.get('log', dict())
         self._fork_switch = log_conf.get('fork_switch', False)
-        self._log_schema = log_conf.get('log_schema', 'monitor')
+        self._log_schema = log_conf.get('log_schema', 'public')
         self._log_table = log_conf.get('log_table', 'log')
         self._log_column = log_conf.get('log_column', list())
 
@@ -476,7 +476,8 @@ class TimescaleWrapper(object):
 
         if isinstance(datas, (list, types.GeneratorType)):
             # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
+            schema = "{schema_name}".format(
+                schema_name=datas[0].get('schema', 'public'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
             id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
@@ -511,7 +512,8 @@ class TimescaleWrapper(object):
                 column_value.append(id_)  # 固有的ID列
         elif isinstance(datas, dict):
             # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(schema_name=datas.get('schema'))
+            schema = "{schema_name}".format(
+                schema_name=datas.get('schema', 'public'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
             id_ = "{id_name}".format(id_name=datas.get('deviceid'))
