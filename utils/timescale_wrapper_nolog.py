@@ -456,7 +456,9 @@ class TimescaleWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)  # 批量插入
             self._database.commit()
-            logger.debug('Data inserted successfully.')
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
@@ -477,7 +479,9 @@ class TimescaleWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug('Data inserted successfully.')
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
@@ -488,7 +492,9 @@ class TimescaleWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug('Data inserted successfully.')
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()

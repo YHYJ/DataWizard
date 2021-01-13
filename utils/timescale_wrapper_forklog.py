@@ -389,8 +389,8 @@ class TimescaleWrapper(object):
         columns_value = list()  # 多个COLUMN VALUE field
 
         # timestamp/id value
-        timestamp = "{ts_field}".format(ts_field=datas.get(self._column_ts))
-        id_ = "{id_name}".format(id_name=datas.get(self._column_id))
+        timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
+        id_ = "{id_name}".format(id_name=datas.get('deviceid'))
 
         # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
         # # 构建COLUMN NAME（固有列）
@@ -479,7 +479,7 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas[0].get('schema'))
             table = "{table_name}".format(table_name=datas[0].get('table'))
             timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas[0].get(self._column_id))
+            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -514,7 +514,7 @@ class TimescaleWrapper(object):
             schema = "{schema_name}".format(schema_name=datas.get('schema'))
             table = "{table_name}".format(table_name=datas.get('table'))
             timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas.get(self._column_id))
+            id_ = "{id_name}".format(id_name=datas.get('deviceid'))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -555,13 +555,23 @@ class TimescaleWrapper(object):
         # 执行SQL语句
         try:
             cursor = self._database.cursor()
+
             tag = 0
             cursor.executemany(SQL, columns_value)
+            self._database.commit()
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
+
             tag = 1
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
-            self._database.commit()
-            logger.debug('Data inserted successfully.')
+                self._database.commit()
+                logger.debug(
+                    ("Data inserted into "
+                     "({schema_name}.{table_name}) "
+                     "successfully.").format(schema_name=self._log_schema,
+                                             table_name=self._log_table))
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
@@ -589,10 +599,17 @@ class TimescaleWrapper(object):
             # 尝试再次写入数据
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
+            self._database.commit()
+            logger.debug(
+                "Data inserted into ({schema_name}.{table_name}) successfully."
+                .format(schema_name=curr_schema, table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
-            self._database.commit()
-            logger.debug('Data inserted successfully.')
+                self._database.commit()
+                logger.debug(("Data inserted into "
+                              "({schema_name}.{table_name}) "
+                              "successfully.").format(schema_name=curr_schema,
+                                                      table_name=curr_table))
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
@@ -614,7 +631,16 @@ class TimescaleWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug('Data inserted successfully.')
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=curr_schema, table_name=curr_table))
+            if SQL_MSG:
+                cursor.executemany(SQL_MSG, msgs_columns_value)
+                self._database.commit()
+                logger.debug(("Data inserted into "
+                              "({schema_name}.{table_name}) "
+                              "successfully.").format(schema_name=curr_schema,
+                                                      table_name=curr_table))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()

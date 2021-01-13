@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: main.py
+File: main_concurrent.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-06 16:06:47
 
 Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 
+使用concurrent模块开启异步多线程
 """
 
 import json
@@ -34,8 +35,6 @@ class Wizard(object):
         :conf: 总配置信息
 
         """
-        self.conf = conf
-
         # [main] - Dizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
@@ -86,7 +85,6 @@ class Wizard(object):
             qsize = queue.qsize()
 
             data = self.convert(data_bytes)
-            # TODO: 调用数据解析函数 <31-12-20, YJ> #
             _start = time.time()
             self.database.insert(data)
             _end = time.time()

@@ -6,7 +6,7 @@ Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-10 11:31:08
 
-Description:
+Description: 用于测试TimescaleDB的多行插入
 
 Attentions:
 -

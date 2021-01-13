@@ -16,6 +16,7 @@ services:
     working_dir: '/opt/DataWizard'
     command: 'python main.py'
     volumes:
+      - '/etc/localtime:/etc/localtime'
       - '$PWD/main.py:/opt/DataWizard/main.py'
       - '$PWD/logs:/opt/DataWizard/logs'
       - '$PWD/conf:/opt/DataWizard/conf'
