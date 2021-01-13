@@ -40,7 +40,7 @@ data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，�
         ping=1                              # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
         [storage.timescaledb.table]
         # 预定义各个表的timestamp、id列名
-        column_time = 'timestamp'           # CHANGED: Hypertable的时间戳列名
+        column_ts = 'timestamp'             # CHANGED: Hypertable的时间戳列名
         column_id = 'id'                    # CHANGED: Table的ID列名
         [storage.timescaledb.log]
         # 是否要处理数据中的日志信息

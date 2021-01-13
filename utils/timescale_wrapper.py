@@ -76,7 +76,7 @@ class TimescaleWrapper(object):
 
         # Database.Table配置
         table_conf = conf.get('table', dict())
-        self._column_time = table_conf.get('column_time', 'timestamp')
+        self._column_ts = table_conf.get('column_ts', 'timestamp')
         self._column_id = table_conf.get('column_id', 'id')
 
         # 创建TimescaleDB连接对象
@@ -230,9 +230,9 @@ class TimescaleWrapper(object):
 
         """
         # 构建SQL语句
-        columns_name = ("{column_time} TIMESTAMP NOT NULL, "
+        columns_name = ("{column_ts} TIMESTAMP NOT NULL, "
                         "{column_id} VARCHAR NOT NULL").format(
-                            column_time=self._column_time,
+                            column_ts=self._column_ts,
                             column_id=self._column_id)
         for column, type_ in columns.items():
             if type_ in ['int', 'float']:
@@ -256,10 +256,9 @@ class TimescaleWrapper(object):
             schema_name=schema, table_name=hypertable, columns=columns_name)
         SQL_HYPERTABLE = ("SELECT {schema_name}.create_hypertable("
                           "'{schema_name}.{table_name}', "
-                          "'{column_time}');").format(
-                              schema_name=schema,
-                              table_name=hypertable,
-                              column_time=self._column_time)
+                          "'{column_ts}');").format(schema_name=schema,
+                                                    table_name=hypertable,
+                                                    column_ts=self._column_ts)
         # 执行SQL语句
         try:
             cursor = self._database.cursor()
@@ -390,7 +389,7 @@ class TimescaleWrapper(object):
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self._column_time, self._column_id])
+            columns_name = ",".join([self._column_ts, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -422,7 +421,7 @@ class TimescaleWrapper(object):
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self._column_time, self._column_id])
+            columns_name = ",".join([self._column_ts, self._column_id])
             # # 构建COLUMN VALUE
             column_value.append(timestamp)  # 固有的时间戳列
             column_value.append(id_)  # 固有的ID列
@@ -582,6 +581,6 @@ if __name__ == "__main__":
         result = client.query(column=columns,
                               schema=datas.get('schema'),
                               table=datas.get('table'),
-                              order=conf['table'].get('column_time'),
+                              order=conf['table'].get('column_ts'),
                               limit=1)
         print('Query result: \n{result}\n'.format(result=result))
