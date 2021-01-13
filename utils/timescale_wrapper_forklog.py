@@ -261,7 +261,7 @@ class TimescaleWrapper(object):
 
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=hypertable, columns=columns_name)
-        SQL_HYPERTABLE = ("SELECT create_hypertable("
+        SQL_HYPERTABLE = ("SELECT {schema_name}.create_hypertable("
                           "'{schema_name}.{table_name}', "
                           "'{column_time}');").format(
                               schema_name=schema,
