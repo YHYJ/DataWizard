@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: timescale_wrapper.py
+File: timescale_wrapper_nolog.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-10-27 17:25:23
