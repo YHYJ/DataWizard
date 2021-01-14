@@ -75,9 +75,9 @@ class TimescaleWrapper(object):
         self._ping = pool_conf.get('ping', 1)
 
         # Database.Table配置
-        table_conf = conf.get('table', dict())
-        self._column_ts = table_conf.get('column_ts', 'timestamp')
-        self._column_id = table_conf.get('column_id', 'id')
+        column_conf = conf.get('column', dict())
+        self._column_ts = column_conf.get('column_ts', 'timestamp')
+        self._column_id = column_conf.get('column_id', 'id')
 
         # message数据配置
         message_conf = conf.get('message', dict())
