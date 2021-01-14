@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: timescale_wrapper_forklog.py
+File: timescale_wrapper_forkmessage.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-10-27 17:25:23
@@ -79,12 +79,12 @@ class TimescaleWrapper(object):
         self._column_ts = table_conf.get('column_ts', 'timestamp')
         self._column_id = table_conf.get('column_id', 'id')
 
-        # 日志数据配置
-        log_conf = conf.get('log', dict())
-        self._log_switch = log_conf.get('log_switch', False)
-        self._log_schema = log_conf.get('log_schema', 'public')
-        self._log_table = log_conf.get('log_table', 'log')
-        self._log_column = log_conf.get('log_column', list())
+        # message数据配置
+        message_conf = conf.get('message', dict())
+        self._message_switch = message_conf.get('message_switch', False)
+        self._message_schema = message_conf.get('message_schema', 'public')
+        self._message_table = message_conf.get('message_table', 'message')
+        self._message_column = message_conf.get('message_column', list())
 
         # 创建TimescaleDB连接对象
         self._database = None
@@ -341,10 +341,10 @@ class TimescaleWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def fork_log(self, datas):
-        """Fork日志信息到一个独立的数据表
+    def fork_message(self, datas):
+        """转储message数据到一个独立的数据表
 
-        :datas: 包含日志信息的数据，dict类型
+        :datas: 包含message的数据，dict类型
         :returns: SQL语句
 
                 datas = {
@@ -401,7 +401,7 @@ class TimescaleWrapper(object):
         # # 构建COLUMN MARK
         columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
         # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
-        for column in self._log_column:
+        for column in self._message_column:
             if column in datas['fields'].keys():
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
@@ -418,8 +418,8 @@ class TimescaleWrapper(object):
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
                "VALUES ({column_value});").format(
                    # SCHEMA.TABLE
-                   schema_name=self._log_schema,
-                   table_name=self._log_table,
+                   schema_name=self._message_schema,
+                   table_name=self._message_table,
                    # COLUMN NAME
                    column_name=columns_name,
                    # COLUMN VALUE
@@ -469,7 +469,7 @@ class TimescaleWrapper(object):
 
         """
         # SQL_MSG、COLUMN NAME和COLUMN VALUE
-        SQL_MSG = str()  # Log message SQL statement
+        SQL_MSG = str()  # Message SQL statement
         columns_name = str()  # COLUMN NAME field
         column_value = list()  # 单个COLUMN VALUE field
         columns_value = list()  # 多个COLUMN VALUE field
@@ -498,9 +498,9 @@ class TimescaleWrapper(object):
                 columns_value_mark = ",".join([columns_value_mark, "%s"])
             # 完善COLUMN VALUE
             for data in datas:
-                # 检索处理日志信息，如果'message'是data['fields']的key
-                if 'message' in data['fields'].keys():
-                    SQL_MSG, msgs_columns_value = self.fork_log(datas=data)
+                # 检索处理message数据，如果允许其转储且'message'是data['fields']的key
+                if self._message_switch and 'message' in data['fields'].keys():
+                    SQL_MSG, msgs_columns_value = self.fork_message(datas=data)
                 for data in data['fields'].values():
                     # 构建COLUMN VALUE
                     column_value.append(data['value'])
@@ -537,9 +537,9 @@ class TimescaleWrapper(object):
             # 合并多个COLUMN VALUE
             columns_value.append(column_value)
 
-            # 检索处理日志信息，如果'message'是datas['fields']的key
-            if 'message' in datas['fields'].keys():
-                SQL_MSG, msgs_columns_value = self.fork_log(datas=datas)
+            # 检索处理message数据，如果允许其转储且'message'是data['fields']的key
+            if self._message_switch and 'message' in datas['fields'].keys():
+                SQL_MSG, msgs_columns_value = self.fork_message(datas=datas)
         else:
             logger.error("Data type error, 'datas' must be list or dict.")
 
@@ -572,16 +572,16 @@ class TimescaleWrapper(object):
                 logger.debug(
                     ("Data inserted into "
                      "({schema_name}.{table_name}) "
-                     "successfully.").format(schema_name=self._log_schema,
-                                             table_name=self._log_table))
+                     "successfully.").format(schema_name=self._message_schema,
+                                             table_name=self._message_table))
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
             logger.info('Creating schema ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            curr_schema = schema if tag == 0 else self._log_schema
-            curr_table = table if tag == 0 else self._log_table
+            curr_schema = schema if tag == 0 else self._message_schema
+            curr_table = table if tag == 0 else self._message_table
             self.create_schema(schema=curr_schema)
             # 尝试创建Hypertable
             logger.info('Creating hypertable ...')
@@ -591,7 +591,7 @@ class TimescaleWrapper(object):
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key, value in cache['fields'].items():
                 if tag == 1:
-                    if key in self._log_column:
+                    if key in self._message_column:
                         columns.update({key: value['type']})
                 else:
                     columns.update({key: value['type']})
@@ -618,13 +618,13 @@ class TimescaleWrapper(object):
             # 尝试添加Column
             logger.info('Adding column ...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            curr_schema = schema if tag == 0 else self._log_schema
-            curr_table = table if tag == 0 else self._log_table
+            curr_schema = schema if tag == 0 else self._message_schema
+            curr_table = table if tag == 0 else self._message_table
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             for key in cache['fields'].keys():
-                if tag == 1 and key not in self._log_column:
+                if tag == 1 and key not in self._message_column:
                     cache.pop(key, None)
             self.add_column(schema=curr_schema,
                             table=curr_table,

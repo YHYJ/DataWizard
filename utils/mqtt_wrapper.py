@@ -14,7 +14,7 @@ import logging
 
 import paho.mqtt.client as Mqtt
 
-log = logging.getLogger('DataWizard.utils.mqtt_wrapper')
+logger = logging.getLogger('DataWizard.utils.mqtt_wrapper')
 
 
 class MqttWrapper(object):
@@ -59,7 +59,7 @@ class MqttWrapper(object):
                                  port=self._port,
                                  keepalive=self._keepalive)
         except Exception as err:
-            log.error("Connection error: {}".format(err))
+            logger.error("Connection error: {}".format(err))
 
     def __on_connect(self,
                      client,
@@ -88,9 +88,10 @@ class MqttWrapper(object):
 
         """
         if reasonCode == 0:
-            log.info('MQTT bridge connected')
+            logger.info('MQTT bridge connected')
         else:
-            log.error('Connection error, reasonCode = {}'.format(reasonCode))
+            logger.error(
+                'Connection error, reasonCode = {}'.format(reasonCode))
             client.disconnect()
 
     def __on_disconnect(self, client, userdata, reasonCode, properties=None):
@@ -104,7 +105,7 @@ class MqttWrapper(object):
                      For MQTT v3.1 and v3.1.1, properties = None
 
         """
-        log.info("Disconnection with reasonCode = {}".format(reasonCode))
+        logger.info("Disconnection with reasonCode = {}".format(reasonCode))
 
     def __on_publish(self, client, userdata, mid):
         """called when a message that was to be sent using the publish()
@@ -122,7 +123,7 @@ class MqttWrapper(object):
               publish() call, to allow outgoing messages to be tracked
 
         """
-        log.info('Published success, mid = {}'.format(mid))
+        logger.info('Published success, mid = {}'.format(mid))
 
     def __on_subscribe(self,
                        client,
@@ -148,7 +149,7 @@ class MqttWrapper(object):
             callback(client, userdata, mid, reasonCodes, properties)
 
         """
-        log.info('Subscribed success, mid = {} granted_qos = {} '.format(
+        logger.info('Subscribed success, mid = {} granted_qos = {} '.format(
             mid, granted_qos))
 
     def __on_message(self, client, userdata, message):
@@ -174,7 +175,7 @@ class MqttWrapper(object):
                                      payload=payload,
                                      qos=self._qos)
         except Exception as err:
-            log.error(err)
+            logger.error(err)
 
     def sub_message(self):
         """Subscribe to data from MQTT bridge."""
@@ -183,4 +184,4 @@ class MqttWrapper(object):
                 self._client.subscribe(topic=topic, qos=self._qos)
             self._client.loop_start()
         except Exception as err:
-            log.error(err)
+            logger.error(err)

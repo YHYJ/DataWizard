@@ -6,7 +6,7 @@ Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-06 16:06:47
 
-Description: 将data和log从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
+Description: 将data和message从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
 
 使用concurrent模块开启异步多线程
 """
@@ -22,7 +22,7 @@ import toml
 
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
-from utils.timescale_wrapper_forklog import TimescaleWrapper
+from utils.timescale_wrapper_forkmessage import TimescaleWrapper
 
 logger = logging.getLogger('DataWizard.main')
 

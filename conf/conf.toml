@@ -22,6 +22,11 @@ data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，�
     keepalive = 60                          # CHANGED: 心跳包发送时间间隔
 
 
+[cache]
+# 数据缓存配置
+cordon = 5000                               # CHANGED: 警戒线，数据队列大小大于该值时代表数据通道严重堵塞，此时应暂停订阅新数据
+
+
 [storage]
 # 数据存储配置
     [storage.timescaledb]
@@ -31,6 +36,8 @@ data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，�
     user = 'postgres'                       # FIXME: TimescaleDB用户名
     password = 'postgres'                   # FIXME: TimescaleDB密码
     dbname = 'postgres'                     # CHANGED: 要使用的数据库名
+    schema = 'public'                       # CHANGED: 当数据没有自述存储的Schema时的默认值
+    table = 'data'                          # CHANGED: 当数据没有自述存储的Table时的默认值
         [storage.timescaledb.pool]
         # 数据库连接池配置信息
         mincached = 10                      # NOTE: 池中空闲连接初始数量，default = 10
@@ -40,19 +47,19 @@ data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，�
         blocking = true                     # NOTE: 连接数超出最大值时的行为，true表示阻塞直到有连接可用，false表示报告错误
         maxusage = 0                        # NOTE: 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
         ping = 1                            # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
-        [storage.timescaledb.table]
+        [storage.timescaledb.column]
         # 定义数据表的固有列名
         column_ts = 'timestamp'             # CHANGED: Hypertable的时间戳列名
         column_id = 'id'                    # CHANGED: Table的ID列名
-        [storage.timescaledb.log]
-        # 是否要处理数据中的日志信息
-        log_switch = false                  # CHANGED: 是否要将数据中的日志类信息集中到独立的log表里
-        log_schema = 'public'               # CHANGED: 独立log的schema
-        log_table = 'log'                   # CHANGED: 独立log的table
-        log_flag = 'message'                # CHANGED: 日志信息的键名，用来判断是否采集到了日志信息
-        log_column = [                      # CHANGED: 独立log的column
+        [storage.timescaledb.message]
+        # message数据配置
+        message_switch = true               # CHANGED: 是否要将数据中的message数据集中到独立的表里
+        message_flag = 'message'            # CHANGED: message的键名，用来判断是否采集到了message信息
+        message_schema = 'public'           # CHANGED: 独立message的schema
+        message_table = 'message'           # CHANGED: 独立message的table
+        message_column = [                  # CHANGED: 独立message的column
             'message', 'level',
-            'source', 'logpath'
+            'source', 'logpath',
         ]
 
 
