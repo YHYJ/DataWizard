@@ -4,71 +4,73 @@
 
 
 [main]
-number = 150                                # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
-data_source = 'mqtt'                        # CHANGED: 数据来源，可选值：mqtt
-data_storage = 'timescaledb'                # CHANGED: 数据持久化方案，可选值：timescaledb
+number = 150                                        # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
+data_source = 'mqtt'                                # CHANGED: 数据来源，可选值：mqtt
+data_storage = 'timescaledb'                        # CHANGED: 数据持久化方案，可选值：timescaledb
 
 
 [source]
 # 数据来源配置
     [source.mqtt]
-    host = '127.0.0.1'                      # CHANGED: MQTT broker服务地址
-    port = 1883                             # CHANGED: MQTT broker服务地址
-    username = ''                           # CHANGED: 用户名，mqtt允许匿名则留空
-    password = ''                           # CHANGED: 密码，mqtt允许匿名则留空
-    client_id = ''                          # CHANGED: 客户端ID，为空则使用随机值
-    topics = ['topic']                      # FIXME: 发布/订阅的主题
-    qos = 1                                 # CHANGED: 服务质量，可选值为：0, 1, 2
-    keepalive = 60                          # CHANGED: 心跳包发送时间间隔
+    host = '127.0.0.1'                              # CHANGED: MQTT broker服务地址
+    port = 1883                                     # NOTE: MQTT broker服务地址
+    username = ''                                   # CHANGED: 用户名，mqtt允许匿名则留空
+    password = ''                                   # CHANGED: 密码，mqtt允许匿名则留空
+    clientid = 'DataWizard'                         # CHANGED: 客户端ID，为空则使用随机值
+    clean = false                                   # NOTE: 是否清除连接会话，当clientid值为None、空字符串或随机值时必须为true
+    topics = ['topic']                              # FIXME: 发布/订阅的主题列表
+    heartbeat_topics = ['device_monitor/heartbeat'] # CHANGED: 心跳数据发布/订阅的主题列表
+    qos = 1                                         # NOTE: 服务质量，可选值为：0, 1, 2
+    keepalive = 60                                  # NOTE: 心跳包发送时间间隔
 
 
 [cache]
 # 数据缓存配置
-cordon = 5000                               # CHANGED: 警戒线，数据队列大小大于该值时代表数据通道严重堵塞，此时应暂停订阅新数据
+cordon = 5000                                       # CHANGED: 警戒线，数据队列大小大于该值时代表数据通道严重堵塞，此时应暂停订阅新数据
 
 
 [storage]
 # 数据存储配置
     [storage.timescaledb]
     # 数据库连接参数
-    host = '127.0.0.1'                      # CHANGED: TimescaleDB服务器地址
-    port = 5432                             # NOTE: TimescaleDB服务器端口
-    user = 'postgres'                       # FIXME: TimescaleDB用户名
-    password = 'postgres'                   # FIXME: TimescaleDB密码
-    dbname = 'postgres'                     # CHANGED: 要使用的数据库名
-    schema = 'public'                       # CHANGED: 当数据没有自述存储的Schema时的默认值
-    table = 'data'                          # CHANGED: 当数据没有自述存储的Table时的默认值
+    host = '127.0.0.1'                              # CHANGED: TimescaleDB服务器地址
+    port = 5432                                     # NOTE: TimescaleDB服务器端口
+    user = 'postgres'                               # FIXME: TimescaleDB用户名
+    password = 'postgres'                           # FIXME: TimescaleDB密码
+    dbname = 'postgres'                             # CHANGED: 要使用的数据库名
+    schema = 'public'                               # CHANGED: 当数据没有自述存储的Schema时的默认值
+    table = 'data'                                  # CHANGED: 当数据没有自述存储的Table时的默认值
         [storage.timescaledb.pool]
         # 数据库连接池配置信息
-        mincached = 10                      # NOTE: 池中空闲连接初始数量，default = 10
-        maxcached = 0                       # NOTE: 池中最大空闲连接数，0或None表示池大小不受限制
-        maxshared = 0                       # NOTE: 共享连接的最大数目，0或None表示所有连接都是专用的
-        maxconnections = 0                  # NOTE: 通常允许的最大连接数，0或None表示不受限制
-        blocking = true                     # NOTE: 连接数超出最大值时的行为，true表示阻塞直到有连接可用，false表示报告错误
-        maxusage = 0                        # NOTE: 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
-        ping = 1                            # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
+        mincached = 10                              # NOTE: 池中空闲连接初始数量，default = 10
+        maxcached = 0                               # NOTE: 池中最大空闲连接数，0或None表示池大小不受限制
+        maxshared = 0                               # NOTE: 共享连接的最大数目，0或None表示所有连接都是专用的
+        maxconnections = 0                          # NOTE: 通常允许的最大连接数，0或None表示不受限制
+        blocking = true                             # NOTE: 连接数超出最大值时的行为，true表示阻塞直到有连接可用，false表示报告错误
+        maxusage = 0                                # NOTE: 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
+        ping = 1                                    # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
         [storage.timescaledb.column]
         # 定义数据表的固有列名
-        column_ts = 'timestamp'             # CHANGED: Hypertable的时间戳列名
-        column_id = 'id'                    # CHANGED: Table的ID列名
+        column_ts = 'timestamp'                     # CHANGED: Hypertable的时间戳列名
+        column_id = 'id'                            # CHANGED: Table的ID列名
         [storage.timescaledb.message]
         # message数据配置
-        message_switch = true               # CHANGED: 是否要将数据中的message数据集中到独立的表里
-        message_flag = 'message'            # CHANGED: message的键名，用来判断是否采集到了message信息
-        message_schema = 'public'           # CHANGED: 独立message的schema
-        message_table = 'message'           # CHANGED: 独立message的table
-        message_column = [                  # CHANGED: 独立message的column
+        message_switch = true                       # CHANGED: 是否要将数据中的message数据集中到独立的表里
+        message_flag = 'message'                    # CHANGED: message的键名，用来判断是否采集到了message信息
+        message_schema = 'public'                   # CHANGED: 独立message的schema
+        message_table = 'message'                   # CHANGED: 独立message的table
+        message_column = [                          # CHANGED: 独立message的column
             'message', 'level',
             'source', 'logpath',
         ]
 
 
 [log]
-console = true                              # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
-console_level = 'DEBUG'                     # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
-file = true                                 # NOTE: 是否要将log输出到文件中
-file_level = 'WARNING'                      # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
-log_file = 'logs/log.log'                   # NOTE: log文件存储路径
-max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
-backup_count = 10                           # NOTE: 最大log文件数
+console = true                                      # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
+console_level = 'DEBUG'                             # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+file = true                                         # NOTE: 是否要将log输出到文件中
+file_level = 'WARNING'                              # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+log_file = 'logs/log.log'                           # NOTE: log文件存储路径
+max_size = 10240000                                 # NOTE: 单个log文件大小，单位KB
+backup_count = 10                                   # NOTE: 最大log文件数
 format_string = '%(asctime)s | %(levelname)s | <%(threadName)s> %(module)s.%(funcName)s [%(lineno)d]: %(message)s'

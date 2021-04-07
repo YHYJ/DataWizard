@@ -22,7 +22,7 @@ import toml
 
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
-from utils.timescale_wrapper_forkmessage import TimescaleWrapper
+from utils.timescale_wrapper import TimescaleWrapper
 
 logger = logging.getLogger('DataWizard.main')
 

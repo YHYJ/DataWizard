@@ -22,7 +22,7 @@ import toml
 
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
-from utils.timescale_wrapper_forkmessage import TimescaleWrapper
+from utils.timescale_wrapper import TimescaleWrapper
 
 logger = logging.getLogger('DataWizard.main')
 
@@ -49,6 +49,7 @@ class Wizard(object):
 
         # 根据topic数量动态构造数据缓存队列的字典
         self.topics = source_conf.get('topics', list())
+        self.heartbeat_topics = source_conf.get('heartbeat_topics', list())
         queues = [Queue() for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
 
@@ -86,7 +87,10 @@ class Wizard(object):
 
             data = self.convert(data_bytes)
             _start = time.time()
-            self.database.insert(data)
+            if topic in self.heartbeat_topics:
+                pass
+            else:
+                self.database.insert(data)
             _end = time.time()
             logger.info(
                 ("Got the data, "

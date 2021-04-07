@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: timescale_wrapper_forkmessage.py
+File: timescale_wrapper.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-10-27 17:25:23
@@ -18,7 +18,6 @@ Description: 与TimescaleDB进行数据交互，包括：
 
 import logging
 import time
-import types
 
 import psycopg2
 import toml
@@ -468,13 +467,18 @@ class TimescaleWrapper(object):
                 }]
 
         """
+        tag = 0  # 运行进度标志
         # SQL_MSG、COLUMN NAME和COLUMN VALUE
         SQL_MSG = str()  # Message SQL statement
+        schema = str()  # SCHEMA name
+        table = str()  # TABLE name
         columns_name = str()  # COLUMN NAME field
         column_value = list()  # 单个COLUMN VALUE field
         columns_value = list()  # 多个COLUMN VALUE field
+        columns_value_mark = str()  # 固有COLUMN的MARK（时间戳和ID）
+        msgs_columns_value = list()  # 多个日志信息的COLUMN VALUE field
 
-        if isinstance(datas, (list, types.GeneratorType)):
+        if isinstance(datas, list):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(
                 schema_name=datas[0].get('schema', 'public'))

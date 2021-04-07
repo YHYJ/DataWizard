@@ -31,7 +31,8 @@ class MqttWrapper(object):
         self._port = conf.get('port', 1883)
         self._username = conf.get('username', None)
         self._password = conf.get('password', None)
-        self._client_id = conf.get('client_id', str())
+        self._clientid = clientid = conf.get('clientid', str())
+        self._clean = conf.get('clean', False if clientid else True)
         self._topics = conf.get('topics', list())
         self._qos = conf.get('qos', 2)
         self._keepalive = conf.get('keepalive', 60)
@@ -45,7 +46,8 @@ class MqttWrapper(object):
 
     def _connect(self):
         """Connect to MQTT."""
-        self._client = Mqtt.Client(client_id=self._client_id)
+        self._client = Mqtt.Client(client_id=self._clientid,
+                                   clean_session=self._clean)
         self._client.username_pw_set(self._username, self._password)
 
         self._client.on_connect = self.__on_connect
