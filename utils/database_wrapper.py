@@ -230,7 +230,8 @@ class PostgresqlWrapper(object):
                             }
 
         """
-        # 构建SQL语句
+        # 构建SQL语句元素
+        proc = 'create_hypertable'
         columns_name = ("{column_ts} TIMESTAMP NOT NULL, "
                         "{column_id} VARCHAR NOT NULL").format(
                             column_ts=self._column_ts,
@@ -255,17 +256,44 @@ class PostgresqlWrapper(object):
 
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=hypertable, columns=columns_name)
-        SQL_HYPERTABLE = ("SELECT {schema_name}.create_hypertable("
-                          "'{schema_name}.{table_name}', "
-                          "'{column_ts}');").format(schema_name=schema,
-                                                    table_name=hypertable,
-                                                    column_ts=self._column_ts)
+        SQL_JUDGE = ("SELECT EXISTS ("
+                     "SELECT * "
+                     "FROM pg_catalog.pg_proc "
+                     "JOIN pg_namespace "
+                     "ON pg_catalog.pg_proc.pronamespace = pg_namespace.oid "
+                     "WHERE proname = 'create_hypertable' "
+                     "AND pg_namespace.nspname = '{schema_name}');").format(
+                         schema_name=schema)
+
         # 执行SQL语句
         try:
+            # 获取cursor
             cursor = self._database.cursor()
+
+            # 判断指定schema中是否存在create_hypertable存储过程
+            cursor.execute(SQL_JUDGE)
+            exist = cursor.fetchall()[0][0]
+            proc_schema = schema
+            if not exist:
+                proc_schema = 'public'
+                logger.warning("Stored procedure {schema_name}.{proc_name} "
+                               "does not exist, "
+                               "use public.{proc_name}".format(
+                                   schema_name=schema, proc_name=proc))
+
+            # 如果指定schema中没有create_hypertable存储过程，则使用public中的
+            SQL_HYPERTABLE = ("SELECT {proc_schema_name}.{proc_name}("
+                              "'{schema_name}.{table_name}', "
+                              "'{column_ts}');").format(
+                                  proc_schema_name=proc_schema,
+                                  proc_name=proc,
+                                  schema_name=schema,
+                                  table_name=hypertable,
+                                  column_ts=self._column_ts)
+
             cursor.execute(SQL)
             cursor.execute(SQL_HYPERTABLE)
-            self._database.commit()
+            self._database.commit()  # 在建表并设置为超表之后统一commit,否则可能会建一个普通表
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
             logger.error("Undefined schema: {text}".format(text=warn))
@@ -748,10 +776,14 @@ if __name__ == "__main__":
     sys.path.append('..')
     from tools.genesis import genesis
 
-    # 创建与PostgreSQL的连接
+    # 加载配置文件
     confile = '../conf/conf.toml'
     config = toml.load(confile)
-    client = PostgresqlWrapper(config)
+
+    # 创建与PostgreSQL的连接
+    storage_conf = config.get('storage', dict())
+    postgresql_conf = storage_conf.get('postgresql', dict())
+    client = PostgresqlWrapper(postgresql_conf)
 
     # 运行简单测试方法
     while True:
@@ -766,10 +798,10 @@ if __name__ == "__main__":
 
         # 测试查询数据
         columns = 'timestamp,id'
-        conf = config.get('storage', dict()).get('postgresql', dict())
+        column_conf = postgresql_conf.get('column', dict())
         result = client.query(column=columns,
                               schema=datas.get('schema'),
                               table=datas.get('table'),
-                              order=conf['column'].get('column_ts'),
+                              order=column_conf.get('column_ts'),
                               limit=1)
         print('Query result: \n{result}\n'.format(result=result))
