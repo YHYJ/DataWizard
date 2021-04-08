@@ -21,6 +21,7 @@ import time
 
 import psycopg2
 import toml
+# 在so文件中实现
 from psycopg2.errors import (DuplicateSchema, DuplicateTable, InterfaceError,
                              InvalidSchemaName, OperationalError,
                              UndefinedColumn, UndefinedTable)
@@ -647,6 +648,42 @@ class TimescaleWrapper(object):
                               "({schema_name}.{table_name}) "
                               "successfully.").format(schema_name=curr_schema,
                                                       table_name=curr_table))
+        except (OperationalError, InterfaceError):
+            logger.error('Reconnect to the TimescaleDB ...')
+            self._reconnect()
+        except Exception as err:
+            logger.error(err)
+
+    def insert_next(self, sql, data):
+        """向数据表批量插入数据（下一代）
+
+        :sql: SQL语句
+        :data: 要插入的数据，类型为list
+
+        """
+        # 构建SQL语句
+        #  SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
+        #         "VALUES ({column_value});").format(
+        #             # SCHEMA.TABLE
+        #             schema_name=schema,
+        #             table_name=table,
+        #             # COLUMN NAME
+        #             column_name=columns_name,
+        #             # COLUMN VALUE
+        #             column_value=columns_value_mark)
+
+        # 执行SQL语句
+        try:
+            cursor = self._database.cursor()
+
+            cursor.executemany(sql, data)
+            self._database.commit()
+        # 数据库中缺少指定Table
+        except UndefinedTable as warn:
+            logger.error('Undefined table: {text}'.format(text=warn))
+        # 数据表中缺少指定Column，动态创建
+        except UndefinedColumn as warn:
+            logger.warning('Undefined column: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the TimescaleDB ...')
             self._reconnect()

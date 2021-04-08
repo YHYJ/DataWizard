@@ -84,8 +84,8 @@ class Wizard(object):
             queue = self.queue_dict.get(topic)
             data_bytes = queue.get()
             qsize = queue.qsize()
-
             data = self.convert(data_bytes)
+
             _start = time.time()
             if topic in self.heartbeat_topics:
                 pass
