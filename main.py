@@ -6,7 +6,7 @@ Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-11-06 16:06:47
 
-Description: 将data和message从缓存(redis, mqtt ...)持久化到数据库(TimescaleDB)
+Description: 将data和message从缓存(redis, mqtt ...)持久化到数据库(PostgreSQL)
 
 使用concurrent模块开启异步多线程
 """
@@ -22,7 +22,7 @@ import toml
 
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
-from utils.database_wrapper import TimescaleWrapper
+from utils.database_wrapper import PostgresqlWrapper
 
 logger = logging.getLogger('DataWizard.main')
 
@@ -41,7 +41,7 @@ class Wizard(object):
         self.number = main_conf.get('number') + os.cpu_count(
         ) if main_conf.get('number', 0) > 0 else os.cpu_count()
         data_source = main_conf.get('data_source', 'mqtt')
-        data_storage = main_conf.get('data_storage', 'timescaledb')
+        data_storage = main_conf.get('data_storage', 'postgresql')
 
         # 主要配置部分
         source_conf = conf['source'].get(data_source, dict())
@@ -58,13 +58,14 @@ class Wizard(object):
             self.mqtt = MqttWrapper(source_conf, self.queue_dict)
 
         # [storage] - 数据去处配置
-        if data_storage == 'timescaledb':
-            self.database = TimescaleWrapper(storage_conf)
+        if data_storage.lower() == 'postgresql':
+            self.database = PostgresqlWrapper(storage_conf)
 
         # [log] - Log记录器配置
         setup_logging(conf['log'])
 
-    def convert(self, raw_data):
+    @staticmethod
+    def convert(raw_data):
         """Convert data
         :returns: data
 

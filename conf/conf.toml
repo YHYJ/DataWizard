@@ -6,7 +6,7 @@
 [main]
 number = 150                                        # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
 data_source = 'mqtt'                                # CHANGED: 数据来源，可选值：mqtt
-data_storage = 'timescaledb'                        # CHANGED: 数据持久化方案，可选值：timescaledb
+data_storage = 'postgresql'                         # CHANGED: 数据持久化方案，可选值：'postgresql'
 
 
 [source]
@@ -31,16 +31,16 @@ cordon = 5000                                       # CHANGED: 警戒线，数�
 
 [storage]
 # 数据存储配置
-    [storage.timescaledb]
+    [storage.postgresql]
     # 数据库连接参数
-    host = '127.0.0.1'                              # CHANGED: TimescaleDB服务器地址
-    port = 5432                                     # NOTE: TimescaleDB服务器端口
-    user = 'postgres'                               # FIXME: TimescaleDB用户名
-    password = 'postgres'                           # FIXME: TimescaleDB密码
+    host = '127.0.0.1'                              # CHANGED: PostgreSQL服务器地址
+    port = 5432                                     # NOTE: PostgreSQL服务器端口
+    user = 'postgres'                               # FIXME: PostgreSQL用户名
+    password = 'postgres'                           # FIXME: PostgreSQL密码
     dbname = 'postgres'                             # CHANGED: 要使用的数据库名
     schema = 'public'                               # CHANGED: 当数据没有自述存储的Schema时的默认值
     table = 'data'                                  # CHANGED: 当数据没有自述存储的Table时的默认值
-        [storage.timescaledb.pool]
+        [storage.postgresql.pool]
         # 数据库连接池配置信息
         mincached = 10                              # NOTE: 池中空闲连接初始数量，default = 10
         maxcached = 0                               # NOTE: 池中最大空闲连接数，0或None表示池大小不受限制
@@ -49,11 +49,11 @@ cordon = 5000                                       # CHANGED: 警戒线，数�
         blocking = true                             # NOTE: 连接数超出最大值时的行为，true表示阻塞直到有连接可用，false表示报告错误
         maxusage = 0                                # NOTE: 单个连接的最大复用次数，当达到该次数时该连接自动重置，0或None表示无限制
         ping = 1                                    # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
-        [storage.timescaledb.column]
+        [storage.postgresql.column]
         # 定义数据表的固有列名
         column_ts = 'timestamp'                     # CHANGED: Hypertable的时间戳列名
         column_id = 'id'                            # CHANGED: Table的ID列名
-        [storage.timescaledb.message]
+        [storage.postgresql.message]
         # message数据配置
         message_switch = true                       # CHANGED: 是否要将数据中的message数据集中到独立的表里
         message_flag = 'message'                    # CHANGED: message的键名，用来判断是否采集到了message信息

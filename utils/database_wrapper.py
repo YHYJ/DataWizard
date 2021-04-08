@@ -30,8 +30,8 @@ except (ModuleNotFoundError, Exception):
 logger = logging.getLogger('DataWizard.utils.database_wrapper')
 
 
-class TimescaleWrapper(object):
-    """TimescaleDB的包装器
+class PostgresqlWrapper(object):
+    """PostgreSQL的包装器
 
     功能包括：
         - 创建模式      (CREATE SCHEMA)
@@ -45,7 +45,7 @@ class TimescaleWrapper(object):
         """初始化方法
 
         1. 初始化配置信息
-        2. 创建与TimescaleDB的连接（连接池）
+        2. 创建与PostgreSQL的连接（连接池）
         3. 预先创建Schema和Hypertable
 
         :conf: 配置参数
@@ -80,12 +80,12 @@ class TimescaleWrapper(object):
         self._message_table = message_conf.get('message_table', 'message')
         self._message_column = message_conf.get('message_column', list())
 
-        # 创建TimescaleDB连接对象
+        # 创建PostgreSQL连接对象
         self._database = None
         self.connect()
 
     def _create_pool(self):
-        """创建TimescaleDB连接池
+        """创建PostgreSQL连接池
 
         用于DBUtils连接池的参数有：
             - mincached           # 初始空闲连接数
@@ -117,15 +117,15 @@ class TimescaleWrapper(object):
         return pool
 
     def _reconnect(self):
-        """重开与TimescaleDB的连接"""
+        """重开与PostgreSQL的连接"""
         if not self._database._closed:
             self._database.close()
         self.connect()
 
     def connect(self):
-        """从连接池中获取一个TimescaleDB连接对象
+        """从连接池中获取一个PostgreSQL连接对象
 
-        :returns: TimescaleDB连接对象
+        :returns: PostgreSQL连接对象
 
         """
         while True:
@@ -135,7 +135,7 @@ class TimescaleWrapper(object):
                 break
             except OperationalError as err:
                 logger.error(
-                    "TimescaleDB Connection error: {error}".format(error=err))
+                    "PostgreSQL Connection error: {error}".format(error=err))
             except AttributeError:
                 logger.error("Pool failed, please check configuration.")
             except Exception as err:
@@ -160,7 +160,7 @@ class TimescaleWrapper(object):
         except DuplicateSchema as warn:
             logger.warning("Duplicate schema: {warn}".format(warn=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -211,7 +211,7 @@ class TimescaleWrapper(object):
         except DuplicateTable as warn:
             logger.warning("Create table: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -274,7 +274,7 @@ class TimescaleWrapper(object):
         except DuplicateTable as warn:  # Hypertable已存在
             logger.warning("Duplicate hypertable: {text}".format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -304,7 +304,7 @@ class TimescaleWrapper(object):
         """
         try:
             cursor = self._database.cursor()
-            # TimescaleDB限制了一次只能新增一列
+            # PostgreSQL限制了一次只能新增一列
             for key, value in datas.items():
                 # 处理没指定type的情况
                 if 'type' in value.keys():
@@ -330,7 +330,7 @@ class TimescaleWrapper(object):
                     logger.error(
                         'Cannot add column, value type is not specified.')
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -643,7 +643,7 @@ class TimescaleWrapper(object):
                               "successfully.").format(schema_name=curr_schema,
                                                       table_name=curr_table))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -679,7 +679,7 @@ class TimescaleWrapper(object):
         except UndefinedColumn as warn:
             logger.warning('Undefined column: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -716,7 +716,7 @@ class TimescaleWrapper(object):
         except (UndefinedTable, UndefinedColumn) as warn:
             logger.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -736,7 +736,7 @@ class TimescaleWrapper(object):
             self._database.commit()
             print(data)
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the TimescaleDB ...')
+            logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -748,10 +748,10 @@ if __name__ == "__main__":
     sys.path.append('..')
     from tools.genesis import genesis
 
-    # 创建与TimescaleDB的连接
+    # 创建与PostgreSQL的连接
     confile = '../conf/conf.toml'
-    conf = toml.load(confile)
-    client = TimescaleWrapper(conf)
+    config = toml.load(confile)
+    client = PostgresqlWrapper(config)
 
     # 运行简单测试方法
     while True:
@@ -762,14 +762,14 @@ if __name__ == "__main__":
         datas = genesis()
         # 测试插入数据
         client.insert(datas=datas)
-        print('Insert Data')
+        print('Insert data')
 
         # 测试查询数据
         columns = 'timestamp,id'
-        conf = conf['database']['timescale']
+        conf = config.get('storage', dict()).get('postgresql', dict())
         result = client.query(column=columns,
                               schema=datas.get('schema'),
                               table=datas.get('table'),
-                              order=conf['table'].get('column_ts'),
+                              order=conf['column'].get('column_ts'),
                               limit=1)
         print('Query result: \n{result}\n'.format(result=result))
