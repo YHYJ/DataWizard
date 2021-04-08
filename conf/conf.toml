@@ -19,7 +19,7 @@ data_storage = 'postgresql'                         # CHANGED: 数据持久化�
     clientid = 'DataWizard'                         # CHANGED: 客户端ID，为空则使用随机值
     clean = false                                   # NOTE: 是否清除连接会话，当clientid值为None、空字符串或随机值时必须为true
     topics = ['topic']                              # FIXME: 发布/订阅的主题列表
-    heartbeat_topics = ['device_monitor/heartbeat'] # CHANGED: 心跳数据发布/订阅的主题列表
+    heartbeat_topics = ['heartbeat']                # CHANGED: 心跳数据发布/订阅的主题列表
     qos = 1                                         # NOTE: 服务质量，可选值为：0, 1, 2
     keepalive = 60                                  # NOTE: 心跳包发送时间间隔
 
