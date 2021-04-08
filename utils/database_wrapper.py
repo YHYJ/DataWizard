@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-File: timescale_wrapper.py
+File: database_wrapper.py
 Author: YJ
 Email: yj1516268@outlook.com
 Created Time: 2020-10-27 17:25:23
 
-Description: 与TimescaleDB进行数据交互，包括：
-1. 创建模式(Schema)
-2. 创建表(Table)
-3. 创建超表(Hypertable)
-4. 动态添加列(Column)
-5. 批量插入数据
-6. 查询数据
+Description: 与数据库进行交互
 
 """
 
@@ -21,7 +15,7 @@ import time
 
 import psycopg2
 import toml
-# 在so文件中实现
+# 在so文件中实现，因此定位不到，但可用
 from psycopg2.errors import (DuplicateSchema, DuplicateTable, InterfaceError,
                              InvalidSchemaName, OperationalError,
                              UndefinedColumn, UndefinedTable)
@@ -33,7 +27,7 @@ except (ModuleNotFoundError, Exception):
     # 不要使用dbutils.pooled_pg.PooledPg
     from dbutils.pooled_db import PooledDB  # dbutils.__version__ >= 2.0
 
-logger = logging.getLogger('DataWizard.utils.timescale_wrapper')
+logger = logging.getLogger('DataWizard.utils.database_wrapper')
 
 
 class TimescaleWrapper(object):

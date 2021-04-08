@@ -1,3 +1,4 @@
+dbutils
 paho-mqtt
 psycopg2
 toml
