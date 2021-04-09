@@ -781,7 +781,6 @@ if __name__ == "__main__":
 
         # 测试插入数据，一条数据有578列
         datas = genesis()
-        #  client.insert(datas=datas)
         result = parse_system_monitor(flow='postgresql',
                                       config=storage_conf,
                                       datas=datas)

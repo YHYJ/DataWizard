@@ -20,9 +20,10 @@ from queue import Queue
 
 import toml
 
+from plugins.parser_postgresql import parse_system_monitor
+from utils.database_wrapper import PostgresqlWrapper
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
-from utils.database_wrapper import PostgresqlWrapper
 
 logger = logging.getLogger('DataWizard.main')
 
@@ -40,12 +41,15 @@ class Wizard(object):
         # # 进程或线程数
         self.number = main_conf.get('number') + os.cpu_count(
         ) if main_conf.get('number', 0) > 0 else os.cpu_count()
-        data_source = main_conf.get('data_source', 'mqtt')
-        data_storage = main_conf.get('data_storage', 'postgresql')
+        self.data_source = data_source = main_conf.get('data_source', 'mqtt')
+        self.data_storage = data_storage = main_conf.get(
+            'data_storage', 'postgresql')
 
         # 主要配置部分
-        source_conf = conf['source'].get(data_source, dict())
-        storage_conf = conf['storage'].get(data_storage, dict())
+        self.storage_conf = source_conf = conf['source'].get(
+            data_source, dict())
+        self.storage_conf = storage_conf = conf['storage'].get(
+            data_storage, dict())
 
         # 根据topic数量动态构造数据缓存队列的字典
         self.topics = source_conf.get('topics', list())
@@ -85,13 +89,18 @@ class Wizard(object):
             queue = self.queue_dict.get(topic)
             data_bytes = queue.get()
             qsize = queue.qsize()
-            data = self.convert(data_bytes)
+            datas = self.convert(data_bytes)
 
             _start = time.time()
             if topic in self.heartbeat_topics:
-                pass
+                result = parse_system_monitor(flow=self.data_storage,
+                                              config=self.storage_conf,
+                                              datas=datas)
+                sql = result.get('sql', str())
+                data = result.get('data', list())
+                self.database.insert_nextgen(sql=sql, data=data)
             else:
-                self.database.insert(data)
+                self.database.insert(datas)
             _end = time.time()
             logger.info(
                 ("Got the data, "
@@ -118,7 +127,7 @@ class Wizard(object):
 if __name__ == "__main__":
     logger.info('Action')
 
-    confile = './conf/conf.toml'
+    confile = 'conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)
 
