@@ -46,24 +46,24 @@ class Wizard(object):
             'data_storage', 'postgresql')
 
         # 主要配置部分
-        self.storage_conf = source_conf = conf['source'].get(
-            data_source, dict())
-        self.storage_conf = storage_conf = conf['storage'].get(
-            data_storage, dict())
+        self.source_conf = source_conf = conf.get('source', dict())
+        mqtt_conf = source_conf.get(data_source, dict())
+        self.storage_conf = storage_conf = conf.get('storage', dict())
+        postgresql_conf = storage_conf.get(data_storage, dict())
 
         # 根据topic数量动态构造数据缓存队列的字典
-        self.topics = source_conf.get('topics', list())
-        self.heartbeat_topics = source_conf.get('heartbeat_topics', list())
+        self.topics = mqtt_conf.get('topics', list())
+        self.heartbeat_topics = mqtt_conf.get('heartbeat_topics', list())
         queues = [Queue() for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
 
         # [source] - 数据来源配置
         if data_source == 'mqtt':
-            self.mqtt = MqttWrapper(source_conf, self.queue_dict)
+            self.mqtt = MqttWrapper(mqtt_conf, self.queue_dict)
 
         # [storage] - 数据去处配置
         if data_storage.lower() == 'postgresql':
-            self.database = PostgresqlWrapper(storage_conf)
+            self.database = PostgresqlWrapper(postgresql_conf)
 
         # [log] - Log记录器配置
         setup_logging(conf['log'])
@@ -96,9 +96,14 @@ class Wizard(object):
                 result = parse_system_monitor(flow=self.data_storage,
                                               config=self.storage_conf,
                                               datas=datas)
+                schema = result.get('schema', str())
+                table = result.get('table', str())
                 sql = result.get('sql', str())
                 data = result.get('data', list())
-                self.database.insert_nextgen(sql=sql, data=data)
+                self.database.insert_nextgen(schema=schema,
+                                             table=table,
+                                             sql=sql,
+                                             data=data)
             else:
                 self.database.insert(datas)
             _end = time.time()
