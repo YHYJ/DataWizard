@@ -52,7 +52,7 @@ cordon = 5000                                       # CHANGED: 警戒线，数�
         [storage.postgresql.column]
         # 定义数据表的固有列名
         column_ts = 'timestamp'                     # CHANGED: 时间戳列名
-        column_id = 'id'                            # CHANGED: ID列名
+        column_id = 'deviceid'                      # CHANGED: ID列名
         [storage.postgresql.message]
         # message数据配置
         message_switch = true                       # CHANGED: 是否要将数据中的message数据集中到独立的表里

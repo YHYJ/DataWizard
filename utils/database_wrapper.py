@@ -70,7 +70,7 @@ class PostgresqlWrapper(object):
         # Database.Table配置
         column_conf = conf.get('column', dict())
         self._column_ts = column_conf.get('column_ts', 'timestamp')
-        self._column_id = column_conf.get('column_id', 'id')
+        self._column_id = column_conf.get('column_id', 'deviceid')
 
         # message数据配置
         message_conf = conf.get('message', dict())
@@ -675,8 +675,8 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insert_next(self, sql, data):
-        """向数据表批量插入数据（下一代）
+    def insert_nextgen(self, sql, data):
+        """向数据表批量插入数据（次世代）
 
         :sql: SQL语句
         :data: 要插入的数据，类型为list
@@ -762,6 +762,7 @@ if __name__ == "__main__":
     # 导入测试数据
     import sys
     sys.path.append('..')
+    from plugins.parser_postgresql import parse_system_monitor
     from tools.genesis import genesis
 
     # 加载配置文件
@@ -778,11 +779,16 @@ if __name__ == "__main__":
         client.use4test()
         time.sleep(1)
 
-        # 一条数据有578列
+        # 测试插入数据，一条数据有578列
         datas = genesis()
-        # 测试插入数据
-        client.insert(datas=datas)
-        print('Insert data')
+        #  client.insert(datas=datas)
+        result = parse_system_monitor(flow='postgresql',
+                                      config=storage_conf,
+                                      datas=datas)
+        sql = result.get('sql', str())
+        data = result.get('data', list())
+        client.insert_nextgen(sql=sql, data=data)
+        print('>>> Data inserted')
 
         # 测试查询数据
         columns = 'timestamp,id'
