@@ -7,7 +7,6 @@ Email: yj1516268@outlook.com
 Created Time: 2020-10-27 17:25:23
 
 Description: 与数据库进行交互
-
 """
 
 import logging
@@ -683,17 +682,6 @@ class PostgresqlWrapper(object):
         :data: 要插入的数据，类型为list
 
         """
-        # 构建SQL语句
-        #  SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
-        #         "VALUES ({column_value});").format(
-        #             # SCHEMA.TABLE
-        #             schema_name=schema,
-        #             table_name=table,
-        #             # COLUMN NAME
-        #             column_name=columns_name,
-        #             # COLUMN VALUE
-        #             column_value=columns_value_mark)
-
         # 执行SQL语句
         try:
             cursor = self._database.cursor()

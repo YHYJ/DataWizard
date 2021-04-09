@@ -35,7 +35,7 @@ class Wizard(object):
         :conf: 总配置信息
 
         """
-        # [main] - Dizard配置
+        # [main] - Wizard配置
         main_conf = conf.get('main', dict())
         # # 进程或线程数
         self.number = main_conf.get('number') + os.cpu_count(
