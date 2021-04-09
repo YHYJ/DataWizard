@@ -185,20 +185,20 @@ class PostgresqlWrapper(object):
         for column, type_ in columns.items():
             if type_ in ['int', 'float']:
                 # int和float类型的数据默认存储为DOUBLE PRECISION
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='DOUBLE PRECISION',
-                                    attr_2='NULL')
-            elif type_ in ['str']:
-                # str类型的数据默认存储为VARCHAR
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='VARCHAR',
-                                    attr_2='NULL')
+                data_type = 'DOUBLE PRECISION'
+            elif type_ in ['json']:
+                # json(list, dict)类型的数据默认存储为JSON
+                data_type = 'JSON'
+            else:
+                # 其他类型的数据默认存储为VARCHAR
+                data_type = 'VARCHAR'
+
+            columns_name = ("{curr_columns}, "
+                            "{new_columns} {attr_1} {attr_2}").format(
+                                curr_columns=columns_name,
+                                new_columns=column,
+                                attr_1=data_type,
+                                attr_2='NULL')
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=table, columns=columns_name)
 
@@ -225,6 +225,7 @@ class PostgresqlWrapper(object):
                                 'column1': 'int',
                                 'column2': 'float',
                                 'column3': 'str',
+                                'column4': 'json',
                                 ... ...
                             }
 
@@ -238,20 +239,20 @@ class PostgresqlWrapper(object):
         for column, type_ in columns.items():
             if type_ in ['int', 'float']:
                 # int和float类型的数据默认存储为DOUBLE PRECISION
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='DOUBLE PRECISION',
-                                    attr_2='NULL')
-            elif type_ in ['str']:
-                # str类型的数据默认存储为VARCHAR
-                columns_name = ("{curr_columns}, "
-                                "{new_columns} {attr_1} {attr_2}").format(
-                                    curr_columns=columns_name,
-                                    new_columns=column,
-                                    attr_1='VARCHAR',
-                                    attr_2='NULL')
+                data_type = 'DOUBLE PRECISION'
+            elif type_ in ['json']:
+                # json(list, dict)类型的数据默认存储为JSON
+                data_type = 'JSON'
+            else:
+                # 其他类型的数据默认存储为VARCHAR
+                data_type = 'VARCHAR'
+
+            columns_name = ("{curr_columns}, "
+                            "{new_columns} {attr_1} {attr_2}").format(
+                                curr_columns=columns_name,
+                                new_columns=column,
+                                attr_1=data_type,
+                                attr_2='NULL')
 
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=hypertable, columns=columns_name)
@@ -339,7 +340,11 @@ class PostgresqlWrapper(object):
                     if value['type'] in ['int', 'float']:
                         # int和float类型的数据默认存储为DOUBLE PRECISION
                         data_type = 'DOUBLE PRECISION'
+                    elif value['type'] in ['json']:
+                        # json(list, dict)类型的数据默认存储为JSON
+                        data_type = 'JSON'
                     else:
+                        # 其他类型的数据默认存储为VARCHAR
                         data_type = 'VARCHAR'
 
                     SQL = (
