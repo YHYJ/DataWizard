@@ -9,6 +9,7 @@ Created Time: 2021-04-08 18:48:04
 Description: 为PostgreSQL进行原始数据解析
 """
 
+import json
 import logging
 
 logger = logging.getLogger('DataWizard.plugins.parser_postgresql')
@@ -59,7 +60,11 @@ def parse_system_monitor(flow, config, datas):
             # 补充列名字符串、列值列表和列值占位字符串 - 其他列
             for name, data in fields.items():
                 columns_name = ','.join([columns_name, name])
-                column_value.append(data['value'])
+                if data.get('type', 'str') == 'json':
+                    value = json.dumps(data.get('value', None))
+                else:
+                    value = data.get('value', None)
+                column_value.append(value)
                 column_value_mark = ','.join([column_value_mark, '%s'])
             # 合并列值列表成一个大列表
             columns_value.append(column_value)
@@ -90,7 +95,11 @@ def parse_system_monitor(flow, config, datas):
                 column_value.append(column_id)
                 # 补充列值列表 - 其他列
                 for field in data.get('fields', dict()).values():
-                    column_value.append(data['value'])
+                    if field.get('type', 'str') == 'json':
+                        value = json.dumps(field.get('value', None))
+                    else:
+                        value = field.get('value', None)
+                    column_value.append(value)
                 # 合并列值列表成一个大列表
                 columns_value.append(column_value)
         else:
@@ -106,6 +115,8 @@ def parse_system_monitor(flow, config, datas):
 
         # 构建返回值
         result = dict()
+        result['schema'] = schema
+        result['table'] = table
         result['sql'] = SQL
         result['data'] = columns_value
 
