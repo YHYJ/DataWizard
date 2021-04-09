@@ -9,6 +9,7 @@ Created Time: 2020-10-27 17:25:23
 Description: 与数据库进行交互
 """
 
+import json
 import logging
 import time
 
@@ -562,7 +563,11 @@ class PostgresqlWrapper(object):
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
                 # 完善COLUMN VALUE
-                column_value.append(data['value'])
+                if data.get('type', 'str') == 'json':
+                    value = json.dumps(data.get('value', None))
+                else:
+                    value = data.get('value', None)
+                column_value.append(value)
                 # 完善COLUMN MARK
                 columns_value_mark = ",".join([columns_value_mark, "%s"])
             # 合并多个COLUMN VALUE
@@ -680,9 +685,11 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insert_nextgen(self, sql, data):
+    def insert_nextgen(self, schema, table, sql, data):
         """向数据表批量插入数据（次世代）
 
+        :schema: 使用的数据库模式名
+        :table: 使用的数据库表名
         :sql: SQL语句
         :data: 要插入的数据，类型为list
 
@@ -690,9 +697,11 @@ class PostgresqlWrapper(object):
         # 执行SQL语句
         try:
             cursor = self._database.cursor()
-
             cursor.executemany(sql, data)
             self._database.commit()
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         # 数据库中缺少指定Table
         except UndefinedTable as warn:
             logger.error('Undefined table: {text}'.format(text=warn))
