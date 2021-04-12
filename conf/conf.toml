@@ -3,6 +3,11 @@
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
 
+[app]
+name = 'DataWizard'                                 # NOTE: 程序名
+version = '0.5.1'                                   # NOTE: 程序版本号
+
+
 [main]
 number = 150                                        # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
 data_source = 'mqtt'                                # CHANGED: 数据来源，可选值：mqtt
@@ -65,7 +70,8 @@ cordon = 5000                                       # CHANGED: 警戒线，数�
         ]
 
 
-[log]
+[log]                                               # 日志配置: 决定本程序日志格式和输出目标
+logger_name = 'DataWizard'                          # CHANGED: 指定基础logger名
 console = true                                      # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
 console_level = 'DEBUG'                             # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                         # NOTE: 是否要将log输出到文件中
@@ -73,4 +79,4 @@ file_level = 'WARNING'                              # NOTE: 日志等级，可�
 log_file = 'logs/log.log'                           # NOTE: log文件存储路径
 max_size = 10240000                                 # NOTE: 单个log文件大小，单位KB
 backup_count = 10                                   # NOTE: 最大log文件数
-format_string = '%(asctime)s | %(levelname)s | <%(threadName)s> %(module)s.%(funcName)s [%(lineno)d]: %(message)s'
+format = '%(asctime)s | %(levelname)s | <%(threadName)s> %(module)s.%(funcName)s [%(lineno)d]: %(message)s'

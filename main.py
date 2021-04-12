@@ -130,11 +130,15 @@ class Wizard(object):
 
 
 if __name__ == "__main__":
-    logger.info('Action')
-
     confile = 'conf/conf.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)
+
+    app_conf = conf.get('app', dict())
+    app_name = app_conf.get('name', 'DataWizard')
+    app_version = app_conf.get('version', None)
+    logger.info('{name}({version}) start running'.format(name=app_name,
+                                                         version=app_version))
 
     wizard.start_mqtt()
     wizard.start_wizard()
