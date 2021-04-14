@@ -28,7 +28,6 @@ def setup_logging(conf):
         "CRITICAL": logging.CRITICAL
     }
 
-    logger_name = conf.get('logger_name', None)  # logger name
     console = conf.get('console', False)  # console output?
     console_level = conf.get('console_level', 'DEBUG')  # console log level
     file = conf.get('file', True)  # file output?
@@ -38,7 +37,7 @@ def setup_logging(conf):
     backup_count = conf.get('backup_count', 10)  # count of log files
     log_format = conf.get('format', '%(message)s')  # log format
 
-    logger = logging.getLogger(logger_name)
+    logger = logging.getLogger('DataWizard')
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S')

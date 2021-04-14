@@ -71,7 +71,6 @@ cordon = 5000                                       # CHANGED: 警戒线，数�
 
 
 [log]                                               # 日志配置: 决定本程序日志格式和输出目标
-logger_name = 'DataWizard'                          # CHANGED: 指定基础logger名
 console = true                                      # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
 console_level = 'DEBUG'                             # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                         # NOTE: 是否要将log输出到文件中
