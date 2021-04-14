@@ -15,10 +15,11 @@ import os
 
 
 def setup_logging(conf):
-    """
-    Initialize the logging module settings
-    :param conf, Initialize parameters
+    """Initialize the logging module settings
+
+    :conf: initialize parameters
     :return: logger
+
     """
     level = {
         "DEBUG": logging.DEBUG,
