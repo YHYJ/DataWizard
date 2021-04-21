@@ -130,7 +130,7 @@ class Wizard(object):
 
 
 if __name__ == "__main__":
-    confile = 'conf/conf.toml'
+    confile = 'conf/config.toml'
     conf = toml.load(confile)
     wizard = Wizard(conf)
 
