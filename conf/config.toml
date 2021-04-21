@@ -5,7 +5,7 @@
 
 [app]
 name = 'DataWizard'                                 # NOTE: 程序名
-version = '0.5.2'                                   # NOTE: 程序版本号
+version = 'v0.5.2'                                  # NOTE: 程序版本号
 
 
 [main]

@@ -780,7 +780,7 @@ if __name__ == "__main__":
     from tools.genesis import genesis
 
     # 加载配置文件
-    confile = '../conf/conf.toml'
+    confile = '../conf/config.toml'
     config = toml.load(confile)
 
     # 创建与PostgreSQL的连接
@@ -798,9 +798,11 @@ if __name__ == "__main__":
         result = parse_system_monitor(flow='postgresql',
                                       config=storage_conf,
                                       datas=datas)
+        schema = result.get('schema', str())
+        table = result.get('table', str())
         sql = result.get('sql', str())
         data = result.get('data', list())
-        client.insert_nextgen(sql=sql, data=data)
+        client.insert_nextgen(schema=schema, table=table, sql=sql, data=data)
         print('>>> Data inserted')
 
         # 测试查询数据
