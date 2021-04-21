@@ -34,7 +34,7 @@ def parse_system_monitor(flow, config, datas):
     column_value_mark = str()  # 单一dict中的列值的占位字符串
 
     # 如果数据流向PostgreSQL
-    if flow.lower() == 'postgresql':
+    if flow.lower() in ['postgresql']:
         # 获取配置信息
         db_conf = config.get(flow, dict())
         fixed_columns = db_conf.get('column', dict())
@@ -46,7 +46,7 @@ def parse_system_monitor(flow, config, datas):
             schema = datas.get('schema', 'public')
             table = datas.get('table', 'no_table')
             column_ts = datas.get(column_ts_tag, '1970-01-01 08:00:00')
-            column_id = datas.get(column_id_tag, 'NO_ID')
+            column_id = datas.get(column_id_tag, 'no_id')
             fields = datas.get('fields', dict())
 
             # 构建列名字符串 - 非空列
@@ -60,7 +60,7 @@ def parse_system_monitor(flow, config, datas):
             # 补充列名字符串、列值列表和列值占位字符串 - 其他列
             for name, data in fields.items():
                 columns_name = ','.join([columns_name, name])
-                if data.get('type', 'str') == 'json':
+                if data.get('type', None) == 'json':
                     value = json.dumps(data.get('value', None))
                 else:
                     value = data.get('value', None)
@@ -73,7 +73,7 @@ def parse_system_monitor(flow, config, datas):
             schema = datas[0].get('schema', 'public')
             table = datas[0].get('table', 'no_table')
             column_ts = datas[0].get(column_ts_tag, '1970-01-01 08:00:00')
-            column_id = datas[0].get(column_id_tag, 'NO_ID')
+            column_id = datas[0].get(column_id_tag, 'no_id')
             fields = datas[0].get('fields', dict())
 
             # 构建列名字符串 - 非空列
@@ -95,7 +95,7 @@ def parse_system_monitor(flow, config, datas):
                 column_value.append(column_id)
                 # 补充列值列表 - 其他列
                 for field in data.get('fields', dict()).values():
-                    if field.get('type', 'str') == 'json':
+                    if field.get('type', None) == 'json':
                         value = json.dumps(field.get('value', None))
                     else:
                         value = field.get('value', None)
