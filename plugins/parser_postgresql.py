@@ -81,8 +81,8 @@ def fork_message(conf, datas):
     return message
 
 
-def parse_system_monitor(flow, config, datas):
-    """解析系统监视信息
+def parse_data(flow, config, datas):
+    """解析数据得到SQL语句
     根据datas解析出SQL语句及其需要的数据
 
     :flow: 数据流向，决定使用storage配置中的哪个部分

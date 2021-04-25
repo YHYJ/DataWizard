@@ -20,7 +20,7 @@ from queue import Queue
 
 import toml
 
-from plugins.parser_postgresql import parse_system_monitor
+from plugins.parser_postgresql import parse_data
 from utils.database_wrapper import PostgresqlWrapper
 from utils.log_wrapper import setup_logging
 from utils.mqtt_wrapper import MqttWrapper
@@ -53,7 +53,6 @@ class Wizard(object):
 
         # 根据topic数量动态构造数据缓存队列的字典
         self.topics = mqtt_conf.get('topics', list())
-        self.heartbeat_topics = mqtt_conf.get('heartbeat_topics', list())
         queues = [Queue() for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
 
@@ -92,11 +91,11 @@ class Wizard(object):
             datas = self.convert(data_bytes)
 
             _start = time.time()
-            #  if topic in self.heartbeat_topics:
-            result = parse_system_monitor(flow=self.data_storage,
-                                          config=self.storage_conf,
-                                          datas=datas)
 
+            result = parse_data(flow=self.data_storage,
+                                config=self.storage_conf,
+                                datas=datas)
+            #  self.database.insert(datas)
             for dm in result:
                 if dm:
                     schema = dm.get('schema', str())
