@@ -30,42 +30,44 @@ logger = logging.getLogger('DataWizard.main')
 
 class Wizard(object):
     """Data Wizard."""
-    def __init__(self, conf):
+    def __init__(self, config):
         """Initialize.
 
-        :conf: 总配置信息
+        :config: 总配置信息
 
         """
         # [main] - Wizard配置
-        main_conf = conf.get('main', dict())
-        # # 进程或线程数
+        main_conf = config.get('main', dict())
         self.number = main_conf.get('number') + os.cpu_count(
         ) if main_conf.get('number', 0) > 0 else os.cpu_count()
-        self.data_source = data_source = main_conf.get('data_source', 'mqtt')
-        self.data_storage = data_storage = main_conf.get(
-            'data_storage', 'postgresql')
 
-        # 主要配置部分
-        self.source_conf = source_conf = conf.get('source', dict())
-        mqtt_conf = source_conf.get(data_source, dict())
-        self.storage_conf = storage_conf = conf.get('storage', dict())
-        postgresql_conf = storage_conf.get(data_storage, dict())
+        # [source] - 数据源配置
+        source_conf = config.get('source', dict())
+        source_select = source_conf.get('select', 'mqtt')
+        source_entity = source_conf.get(source_select.lower(), dict())
+
+        # [storage] - 数据存储配置
+        self.storage_conf = storage_conf = config.get('storage', dict())
+        self.storage_select = storage_select = storage_conf.get(
+            'select', 'postgresql')
+        storage_entity = storage_conf.get(storage_select.lower(), dict())
 
         # 根据topic数量动态构造数据缓存队列的字典
-        self.topics = mqtt_conf.get('topics', list())
+        self.topics = source_entity.get('topics', list())
         queues = [Queue() for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
 
-        # [source] - 数据来源配置
-        if data_source == 'mqtt':
-            self.mqtt = MqttWrapper(mqtt_conf, self.queue_dict)
+        # 构建数据源客户端
+        if source_select.lower() in ['mqtt']:
+            self.mqtt = MqttWrapper(source_entity, self.queue_dict)
 
-        # [storage] - 数据去处配置
-        if data_storage.lower() == 'postgresql':
-            self.database = PostgresqlWrapper(postgresql_conf)
+        # 构建数据存储客户端
+        if storage_select.lower() in ['postgresql']:
+            self.database = PostgresqlWrapper(conf=storage_entity)
 
         # [log] - Log记录器配置
-        setup_logging(conf['log'])
+        log_conf = config.get('log', dict())
+        setup_logging(log_conf)
 
     @staticmethod
     def convert(raw_data):
@@ -92,16 +94,16 @@ class Wizard(object):
 
             _start = time.time()
 
-            result = parse_data(flow=self.data_storage,
+            result = parse_data(flow=self.storage_select,
                                 config=self.storage_conf,
                                 datas=datas)
             #  self.database.insert(datas)
-            for dm in result:
-                if dm:
-                    schema = dm.get('schema', str())
-                    table = dm.get('table', str())
-                    sql = dm.get('sql', str())
-                    value = dm.get('value', list())
+            for res in result:
+                if res:
+                    schema = res.get('schema', str())
+                    table = res.get('table', str())
+                    sql = res.get('sql', str())
+                    value = res.get('value', list())
                     self.database.insert_nextgen(schema=schema,
                                                  table=table,
                                                  sql=sql,
@@ -115,6 +117,8 @@ class Wizard(object):
                                                     size=qsize,
                                                     cost=_end - _start))
             if qsize >= 5000:
+                logger.error(
+                    'Queue ({name}) is too big, stop it'.format(name=topic))
                 break
 
     def start_mqtt(self):
@@ -132,10 +136,10 @@ class Wizard(object):
 
 if __name__ == "__main__":
     confile = 'conf/config.toml'
-    conf = toml.load(confile)
-    wizard = Wizard(conf)
+    config = toml.load(confile)
+    wizard = Wizard(config)
 
-    app_conf = conf.get('app', dict())
+    app_conf = config.get('app', dict())
     app_name = app_conf.get('name', 'DataWizard')
     app_version = app_conf.get('version', None)
     logger.info('{name}({version}) start running'.format(name=app_name,
