@@ -15,6 +15,72 @@ import logging
 logger = logging.getLogger('DataWizard.plugins.parser_postgresql')
 
 
+def fork_message(conf, datas):
+    """转储message数据到一个独立的数据表
+
+    :datas: 包含message的数据，dict类型
+    :returns: 字典，结构为：
+              {
+                  'schema': 'public',
+                  'table': 'example',
+                  'sql': 'SQL statement',
+                  'value': 'Parsed data'
+              }
+
+    """
+    # 获取配置信息
+    fixed_columns = conf.get('column', dict())
+    column_ts_tag = fixed_columns.get('column_ts', 'timestamp')
+    column_id_tag = fixed_columns.get('column_id', 'id')
+    # message数据配置
+    message_conf = conf.get('message', dict())
+    message_schema = message_conf.get('message_schema', 'public')
+    message_table = message_conf.get('message_table', 'message')
+    message_column = message_conf.get('message_column', list())
+
+    columns_name = str()  # 所有列名组成的字符串
+    column_value = list()  # 单一dict中的列值组成的列表
+    columns_value = list()  # 多个column_value组成的列表
+    column_value_mark = str()  # 单一dict中的列值的占位字符串
+
+    column_ts = datas.get(column_ts_tag, '1970-01-01 08:00:00')
+    column_id = datas.get(column_id_tag, 'no_id')
+
+    # 构建列名字符串 - 非空列
+    columns_name = ','.join([column_ts_tag, column_id_tag])
+    # 构建列值列表 - 非空列
+    column_value.append(column_ts)
+    column_value.append(column_id)
+    # 构建列值占位字符串 - 非空列
+    column_value_mark = ','.join(['%s'] * len(fixed_columns))
+
+    # 补充列名字符串、列值列表和列值占位字符串 - 其他列
+    fields = datas.get('fields', dict())
+    for name in message_column:
+        if name in fields.keys():
+            columns_name = ','.join([columns_name, name])
+            column_value.append(fields.get(name, dict()).get('value', str()))
+            column_value_mark = ','.join([column_value_mark, '%s'])
+    # 合并列值列表成一个大列表
+    columns_value.append(column_value)
+
+    # 构建SQL语句
+    SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
+           "VALUES ({column_value});").format(schema_name=message_schema,
+                                              table_name=message_table,
+                                              column_name=columns_name,
+                                              column_value=column_value_mark)
+
+    # 构建返回值
+    message = dict()
+    message['schema'] = message_schema
+    message['table'] = message_table
+    message['sql'] = SQL
+    message['value'] = columns_value
+
+    return message
+
+
 def parse_system_monitor(flow, config, datas):
     """解析系统监视信息
     根据datas解析出SQL语句及其需要的数据
@@ -22,7 +88,13 @@ def parse_system_monitor(flow, config, datas):
     :flow: 数据流向，决定使用storage配置中的哪个部分
     :config: storage部分配置信息
     :datas: 要插入的数据，可以是元素为dict的list或者单独的dict
-    :returns: SQL语句和已解析数据组成的字典，{'sql': 'SQL statement', 'data': 'Parsed data'}
+    :returns: 多个字典组成的列表，字典结构为：
+              {
+                  'schema': 'public',
+                  'table': 'example',
+                  'sql': 'SQL statement',
+                  'value': 'Parsed data'
+              }
 
     """
     # 定义变量
@@ -40,6 +112,10 @@ def parse_system_monitor(flow, config, datas):
         fixed_columns = db_conf.get('column', dict())
         column_ts_tag = fixed_columns.get('column_ts', 'timestamp')
         column_id_tag = fixed_columns.get('column_id', 'id')
+        # message数据配置
+        message = dict()
+        message_conf = db_conf.get('message', dict())
+        message_switch = message_conf.get('message_switch', False)
 
         if isinstance(datas, dict):
             # 获取schem.table名、非空列名和数据字段
@@ -47,7 +123,6 @@ def parse_system_monitor(flow, config, datas):
             table = datas.get('table', 'no_table')
             column_ts = datas.get(column_ts_tag, '1970-01-01 08:00:00')
             column_id = datas.get(column_id_tag, 'no_id')
-            fields = datas.get('fields', dict())
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -58,7 +133,7 @@ def parse_system_monitor(flow, config, datas):
             column_value_mark = ','.join(['%s'] * len(fixed_columns))
 
             # 补充列名字符串、列值列表和列值占位字符串 - 其他列
-            for name, data in fields.items():
+            for name, data in datas.get('fields', dict()).items():
                 columns_name = ','.join([columns_name, name])
                 if data.get('type', None) == 'json':
                     value = json.dumps(data.get('value', None))
@@ -68,13 +143,16 @@ def parse_system_monitor(flow, config, datas):
                 column_value_mark = ','.join([column_value_mark, '%s'])
             # 合并列值列表成一个大列表
             columns_value.append(column_value)
+
+            # 检索处理message数据
+            if message_switch and 'message' in datas['fields'].keys():
+                message = fork_message(conf=db_conf, datas=datas)
         elif isinstance(datas, list):
             # 获取第一个dict的schem.table名、非空列名和数据字段
             schema = datas[0].get('schema', 'public')
             table = datas[0].get('table', 'no_table')
             column_ts = datas[0].get(column_ts_tag, '1970-01-01 08:00:00')
             column_id = datas[0].get(column_id_tag, 'no_id')
-            fields = datas[0].get('fields', dict())
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -82,7 +160,7 @@ def parse_system_monitor(flow, config, datas):
             column_value_mark = ','.join(['%s'] * len(fixed_columns))
 
             # 补充列名字符串和列值占位字符串 - 其他列
-            for name, data in fields.items():
+            for name, data in datas[0].get('fields', dict()).items():
                 columns_name = ','.join([columns_name, name])
                 column_value_mark = ','.join([column_value_mark, '%s'])
 
@@ -102,8 +180,12 @@ def parse_system_monitor(flow, config, datas):
                     column_value.append(value)
                 # 合并列值列表成一个大列表
                 columns_value.append(column_value)
+
+                # 检索处理message数据
+                if message_switch and 'message' in data['fields'].keys():
+                    message = fork_message(conf=db_conf, datas=data)
         else:
-            logger.error('Datas type error, must be dict or list')
+            logger.error("Data type error, 'datas' must be list or dict")
 
         # 构建SQL语句
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
@@ -114,10 +196,15 @@ def parse_system_monitor(flow, config, datas):
                    column_value=column_value_mark)
 
         # 构建返回值
-        result = dict()
-        result['schema'] = schema
-        result['table'] = table
-        result['sql'] = SQL
-        result['data'] = columns_value
+        result = list()
+
+        data = dict()
+        data['schema'] = schema
+        data['table'] = table
+        data['sql'] = SQL
+        data['value'] = columns_value
+
+        result.append(data)
+        result.append(message)
 
         return result

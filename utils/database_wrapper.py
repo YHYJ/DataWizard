@@ -685,34 +685,34 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insert_nextgen(self, schema, table, sql, data):
+    def insert_nextgen(self, schema, table, sql, value):
         """向数据表批量插入数据（次世代）
 
         :schema: 使用的数据库模式名
         :table: 使用的数据库表名
         :sql: SQL语句
-        :data: 要插入的数据，类型为list
+        :value: 要插入的数据，类型为list
 
         """
         # 执行SQL语句
         try:
             cursor = self._database.cursor()
-            cursor.executemany(sql, data)
+            cursor.executemany(sql, value)
             self._database.commit()
             logger.debug(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=schema, table_name=table))
-        # 数据库中缺少指定Table
-        except UndefinedTable as warn:
-            logger.error('Undefined table: {text}'.format(text=warn))
+        # 数据库中缺少指定Table，动态创建
+        except UndefinedTable as e:
+            logger.error('Undefined table: {text}'.format(text=e))
         # 数据表中缺少指定Column，动态创建
-        except UndefinedColumn as warn:
-            logger.warning('Undefined column: {text}'.format(text=warn))
+        except UndefinedColumn as e:
+            logger.warning('Undefined column: {text}'.format(text=e))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
-        except Exception as err:
-            logger.error(err)
+        except Exception as e:
+            logger.error(e)
 
     def query(self, schema, table, column='*', order='id', limit=5):
         """从指定的表查询指定数据
@@ -802,7 +802,7 @@ if __name__ == "__main__":
         table = result.get('table', str())
         sql = result.get('sql', str())
         data = result.get('data', list())
-        client.insert_nextgen(schema=schema, table=table, sql=sql, data=data)
+        client.insert_nextgen(schema=schema, table=table, sql=sql, value=data)
         print('>>> Data inserted')
 
         # 测试查询数据

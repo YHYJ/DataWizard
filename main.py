@@ -92,20 +92,22 @@ class Wizard(object):
             datas = self.convert(data_bytes)
 
             _start = time.time()
-            if topic in self.heartbeat_topics:
-                result = parse_system_monitor(flow=self.data_storage,
-                                              config=self.storage_conf,
-                                              datas=datas)
-                schema = result.get('schema', str())
-                table = result.get('table', str())
-                sql = result.get('sql', str())
-                data = result.get('data', list())
-                self.database.insert_nextgen(schema=schema,
-                                             table=table,
-                                             sql=sql,
-                                             data=data)
-            else:
-                self.database.insert(datas)
+            #  if topic in self.heartbeat_topics:
+            result = parse_system_monitor(flow=self.data_storage,
+                                          config=self.storage_conf,
+                                          datas=datas)
+
+            for dm in result:
+                if dm:
+                    schema = dm.get('schema', str())
+                    table = dm.get('table', str())
+                    sql = dm.get('sql', str())
+                    value = dm.get('value', list())
+                    self.database.insert_nextgen(schema=schema,
+                                                 table=table,
+                                                 sql=sql,
+                                                 value=value)
+
             _end = time.time()
             logger.info(
                 ("Got the data, "
