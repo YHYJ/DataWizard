@@ -3,20 +3,19 @@
 # 标注了'NOTE'的是也许使用默认值即可的参数
 
 
-[app]
+[app]                                               # 程序配置: 程序本身信息
 name = 'DataWizard'                                 # NOTE: 程序名
 version = 'v0.6.0'                                  # NOTE: 程序版本号
 
 
-[main]
+[main]                                              # 主要配置
 number = 150                                        # CHANGED: 池中总的进程/线程数，为0则取值CPU核心数，不要小于写入source的线程数
 data_source = 'mqtt'                                # CHANGED: 数据来源，可选值：mqtt
 data_storage = 'postgresql'                         # CHANGED: 数据持久化方案，可选值：'postgresql'
 
 
-[source]
-# 数据来源配置
-    [source.mqtt]
+[source]                                            # 数据源配置
+    [source.mqtt]                                   # 数据源一
     host = '127.0.0.1'                              # CHANGED: MQTT broker服务地址
     port = 1883                                     # NOTE: MQTT broker服务地址
     username = ''                                   # CHANGED: 用户名，mqtt允许匿名则留空

@@ -43,8 +43,8 @@ def fork_message(conf, datas):
     columns_value = list()  # 多个column_value组成的列表
     column_value_mark = str()  # 单一dict中的列值的占位字符串
 
-    column_ts = datas.get(column_ts_tag, '1970-01-01 08:00:00')
-    column_id = datas.get(column_id_tag, 'no_id')
+    column_ts = datas.get('timestamp', '1970-01-01 08:00:00')
+    column_id = datas.get('deviceid', 'no_id')
 
     # 构建列名字符串 - 非空列
     columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -121,8 +121,8 @@ def parse_data(flow, config, datas):
             # 获取schem.table名、非空列名和数据字段
             schema = datas.get('schema', 'public')
             table = datas.get('table', 'no_table')
-            column_ts = datas.get(column_ts_tag, '1970-01-01 08:00:00')
-            column_id = datas.get(column_id_tag, 'no_id')
+            column_ts = datas.get('timestamp', '1970-01-01 08:00:00')
+            column_id = datas.get('deviceid', 'no_id')
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -151,8 +151,8 @@ def parse_data(flow, config, datas):
             # 获取第一个dict的schem.table名、非空列名和数据字段
             schema = datas[0].get('schema', 'public')
             table = datas[0].get('table', 'no_table')
-            column_ts = datas[0].get(column_ts_tag, '1970-01-01 08:00:00')
-            column_id = datas[0].get(column_id_tag, 'no_id')
+            column_ts = datas[0].get('timestamp', '1970-01-01 08:00:00')
+            column_id = datas[0].get('deviceid', 'no_id')
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
