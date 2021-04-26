@@ -9,6 +9,7 @@
 <!-- vim-markdown-toc GFM -->
 
 * [DataWizard](#datawizard)
+* [配置文件](#配置文件)
 
 <!-- vim-markdown-toc -->
 
@@ -43,3 +44,19 @@
     2. 按队列大小
 
         如果queue.qsize()到了一定大小，则采集这批数据，但可能出现达到指定大小耗时过长的问题
+
+## 配置文件
+
+- [main]部分：
+
+    1. `number`是worker*基数*，它的计算公式为：
+
+        数据源（假设是mqtt）有**10**个topic，每个topic发布的数据频率F=**100**Hz，服务器持久化性能P=0.01s/条，系数C=10，则`number`计算公式如下：
+
+        ```shell
+        number = F * P * C
+        ```
+
+        得出number = 10
+
+        > 系数C由服务器性能、网络环境等因素综合得出，不是一个定值

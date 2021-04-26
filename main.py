@@ -29,9 +29,9 @@ logger = logging.getLogger('DataWizard.main')
 
 
 class Wizard(object):
-    """Data Wizard."""
+    """Data Wizard"""
     def __init__(self, config):
-        """Initialize.
+        """Initialize
 
         :config: 总配置信息
 
@@ -45,6 +45,10 @@ class Wizard(object):
         source_conf = config.get('source', dict())
         source_select = source_conf.get('select', 'mqtt')
         source_entity = source_conf.get(source_select.lower(), dict())
+
+        # [cache] - 缓存配置
+        cache_conf = config.get('cache', dict())
+        self.cordon = cache_conf.get('cordon', 5000)
 
         # [storage] - 数据存储配置
         self.storage_conf = storage_conf = config.get('storage', dict())
@@ -71,7 +75,7 @@ class Wizard(object):
 
     @staticmethod
     def convert(raw_data):
-        """Convert data
+        """解码并加载数据
         :returns: data
 
         """
@@ -92,8 +96,7 @@ class Wizard(object):
             qsize = queue.qsize()
             datas = self.convert(data_bytes)
 
-            _start = time.time()
-
+            start_time = time.time()
             result = parse_data(flow=self.storage_select,
                                 config=self.storage_conf,
                                 datas=datas)
@@ -108,15 +111,15 @@ class Wizard(object):
                                                  table=table,
                                                  sql=sql,
                                                  value=value)
+            end_time = time.time()
 
-            _end = time.time()
-            logger.info(
-                ("Got the data, "
-                 "Queue ({name}) size = {size} "
-                 "<--> Time cost = {cost}s").format(name=topic,
-                                                    size=qsize,
-                                                    cost=_end - _start))
-            if qsize >= 5000:
+            logger.info(("Got the data, "
+                         "Queue ({name}) size = {size} "
+                         "<--> Time cost = {cost}s").format(name=topic,
+                                                            size=qsize,
+                                                            cost=end_time -
+                                                            start_time))
+            if qsize >= self.cordon:
                 logger.error(
                     'Queue ({name}) is too big, stop it'.format(name=topic))
                 break
@@ -124,14 +127,17 @@ class Wizard(object):
     def start_mqtt(self):
         """启动Mqtt客户端订阅数据"""
         self.mqtt.sub_message()
+        logger.info('Subscribing to data from MQTT topic {}'.format(
+            self.topics))
 
     def start_wizard(self):
-        """Main."""
-        with ThreadPoolExecutor(max_workers=self.number,
+        """Main"""
+        # 生成任务列表
+        tasks = self.topics * self.number
+        # max_workers大小和任务列表长度须一致，否则不能在一个周期内完成所有任务
+        with ThreadPoolExecutor(max_workers=len(tasks),
                                 thread_name_prefix='Wizard') as executor:
-            executor.map(self.persistence,
-                         self.topics,
-                         chunksize=len(self.topics))
+            executor.map(self.persistence, tasks, chunksize=len(self.topics))
 
 
 if __name__ == "__main__":
