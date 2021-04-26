@@ -103,14 +103,7 @@ class Wizard(object):
             #  self.database.insert(datas)
             for res in result:
                 if res:
-                    schema = res.get('schema', str())
-                    table = res.get('table', str())
-                    sql = res.get('sql', str())
-                    value = res.get('value', list())
-                    self.database.insert_nextgen(schema=schema,
-                                                 table=table,
-                                                 sql=sql,
-                                                 value=value)
+                    self.database.insert_nextgen(material=res)
             end_time = time.time()
 
             logger.info(("Got the data, "

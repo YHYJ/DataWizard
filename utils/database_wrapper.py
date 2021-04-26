@@ -308,60 +308,45 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def add_column(self, schema, table, datas):
+    def add_column(self, schema, table, columns):
         """添加Column
 
         :schema: 使用的Schema名
         :table: 使用的Table名
-        :datas: Column名及其数据类型
-                datas = {
-                            'column1': {
-                                'type': 'int'
-                                ... ...
-                            },
-                            'column2': {
-                                'type': 'float',
-                                ... ...
-                            },
-                            'column3': {
-                                'type': 'str'
+        :columns: Column名及其数据类型
+                  columns = {
+                                'column1': 'int',
+                                'column2': 'float',
+                                'column3': 'str',
+                                'column4': 'json',
                                 ... ...
                             }
-                            ... ...
-                        }
 
         """
         try:
             cursor = self._database.cursor()
             # PostgreSQL限制了一次只能新增一列
-            for key, value in datas.items():
-                # 处理没指定type的情况
-                if 'type' in value.keys():
-                    # 构建SQL语句
-                    if value['type'] in ['int', 'float']:
-                        # int和float类型的数据默认存储为DOUBLE PRECISION
-                        data_type = 'DOUBLE PRECISION'
-                    elif value['type'] in ['json']:
-                        # json(list, dict)类型的数据默认存储为JSON
-                        data_type = 'JSON'
-                    else:
-                        # 其他类型的数据默认存储为VARCHAR
-                        data_type = 'VARCHAR'
-
-                    SQL = (
-                        "ALTER TABLE {schema_name}.{table_name} "
-                        "ADD COLUMN IF NOT EXISTS {column_name} {data_type};"
-                    ).format(schema_name=schema,
-                             table_name=table,
-                             column_name=key,
-                             data_type=data_type)
-
-                    # 执行SQL语句
-                    cursor.execute(SQL)
-                    self._database.commit()
+            for column, type_ in columns.items():
+                if type_ in ['int', 'float']:
+                    # int和float类型的数据默认存储为DOUBLE PRECISION
+                    data_type = 'DOUBLE PRECISION'
+                elif type_ in ['json']:
+                    # json(list, dict)类型的数据默认存储为JSON
+                    data_type = 'JSON'
                 else:
-                    logger.error(
-                        'Cannot add column, value type is not specified.')
+                    # 其他类型的数据默认存储为VARCHAR
+                    data_type = 'VARCHAR'
+
+                SQL = ("ALTER TABLE {schema_name}.{table_name} "
+                       "ADD COLUMN IF NOT EXISTS {column_name} {data_type};"
+                       ).format(schema_name=schema,
+                                table_name=table,
+                                column_name=column,
+                                data_type=data_type)
+
+                # 执行SQL语句
+                cursor.execute(SQL)
+                self._database.commit()
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
@@ -658,13 +643,17 @@ class PostgresqlWrapper(object):
             curr_table = table if tag == 0 else self._message_table
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
+            columns = dict()
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            for key in cache['fields'].keys():
-                if tag == 1 and key not in self._message_column:
-                    cache.pop(key, None)
+            for key, value in cache['fields'].items():
+                if tag == 1:
+                    if key in self._message_column:
+                        columns.update({key: value['type']})
+                else:
+                    columns.update({key: value['type']})
             self.add_column(schema=curr_schema,
                             table=curr_table,
-                            datas=cache['fields'])
+                            columns=columns)
             # 尝试再次写入数据
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
@@ -685,33 +674,55 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insert_nextgen(self, schema, table, sql, value):
+    def insert_nextgen(self, material):
         """向数据表批量插入数据（次世代）
 
-        :schema: 使用的数据库模式名
-        :table: 使用的数据库表名
-        :sql: SQL语句
-        :value: 要插入的数据，类型为list
+        :material: 一个字典，数据入库用到的物料
 
         """
-        # 执行SQL语句
+        schema = material.get('schema', 'public')
+        table = material.get('table', 'example')
+        sql = material.get('sql', None)
+        value = material.get('value', None)
+        column_type = material.get('column', dict())
+
         try:
+            # 执行SQL语句
             cursor = self._database.cursor()
             cursor.executemany(sql, value)
             self._database.commit()
             logger.debug(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=schema, table_name=table))
-        # 数据库中缺少指定Table，动态创建
         except UndefinedTable as e:
+            # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=e))
-        # 数据表中缺少指定Column，动态创建
+            logger.info('Creating schema ...')
+            self.create_schema(schema=schema)
+            logger.info('Creating hypertable ...')
+            self.create_hypertable(schema=schema,
+                                   hypertable=table,
+                                   columns=column_type)
+            # 尝试再次执行SQL语句
+            cursor = self._database.cursor()
+            cursor.executemany(sql, value)
+            self._database.commit()
+            logger.debug(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         except UndefinedColumn as e:
+            # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=e))
+            logger.info('Adding column ...')
+            self.add_column(schema=schema,
+                            table=table,
+                            columns=column_type)
         except (OperationalError, InterfaceError):
+            # 与数据库的连接断开，重新连接
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
         except Exception as e:
+            # 未知错误
             logger.error(e)
 
     def query(self, schema, table, column='*', order='id', limit=5):

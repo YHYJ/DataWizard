@@ -24,7 +24,11 @@ def fork_message(conf, datas):
                   'schema': 'public',
                   'table': 'example',
                   'sql': 'SQL statement',
-                  'value': 'Parsed data'
+                  'value': 'Parsed data',
+                  'column': {
+                        'column_1': 'int',
+                        'column_2': 'json',
+                  }
               }
 
     """
@@ -38,13 +42,15 @@ def fork_message(conf, datas):
     message_table = message_conf.get('message_table', 'message')
     message_column = message_conf.get('message_column', list())
 
+    # 定义变量
+    column_type = dict()  # 列名及其类型组成的字典
     columns_name = str()  # 所有列名组成的字符串
     column_value = list()  # 单一dict中的列值组成的列表
     columns_value = list()  # 多个column_value组成的列表
     column_value_mark = str()  # 单一dict中的列值的占位字符串
 
     column_ts = datas.get('timestamp', '1970-01-01 08:00:00')
-    column_id = datas.get('deviceid', 'no_id')
+    column_id = datas.get('deviceid', 'id')
 
     # 构建列名字符串 - 非空列
     columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -54,11 +60,13 @@ def fork_message(conf, datas):
     # 构建列值占位字符串 - 非空列
     column_value_mark = ','.join(['%s'] * len(fixed_columns))
 
-    # 补充列名字符串、列值列表和列值占位字符串 - 其他列
+    # 补充列名字符串、列名类型字典、列值列表和列值占位字符串 - 其他列
     fields = datas.get('fields', dict())
     for name in message_column:
         if name in fields.keys():
             columns_name = ','.join([columns_name, name])
+            column_type.update(
+                {name, fields.get(name, dict()).get('type', 'str')})
             column_value.append(fields.get(name, dict()).get('value', str()))
             column_value_mark = ','.join([column_value_mark, '%s'])
     # 合并列值列表成一个大列表
@@ -77,6 +85,7 @@ def fork_message(conf, datas):
     message['table'] = message_table
     message['sql'] = SQL
     message['value'] = columns_value
+    message['column'] = column_type
 
     return message
 
@@ -93,13 +102,18 @@ def parse_data(flow, config, datas):
                   'schema': 'public',
                   'table': 'example',
                   'sql': 'SQL statement',
-                  'value': 'Parsed data'
+                  'value': 'Parsed data',
+                  'column': {
+                        'column_1': 'int',
+                        'column_2': 'json',
+                  }
               }
 
     """
     # 定义变量
     schema = str()  # schema名
     table = str()  # table名
+    column_type = dict()  # 列名及其类型组成的字典
     columns_name = str()  # 所有列名组成的字符串
     column_value = list()  # 单一dict中的列值组成的列表
     columns_value = list()  # 多个column_value组成的列表
@@ -120,9 +134,9 @@ def parse_data(flow, config, datas):
         if isinstance(datas, dict):
             # 获取schem.table名、非空列名和数据字段
             schema = datas.get('schema', 'public')
-            table = datas.get('table', 'no_table')
+            table = datas.get('table', 'example')
             column_ts = datas.get('timestamp', '1970-01-01 08:00:00')
-            column_id = datas.get('deviceid', 'no_id')
+            column_id = datas.get('deviceid', 'id')
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -132,9 +146,10 @@ def parse_data(flow, config, datas):
             # 构建列值占位字符串 - 非空列
             column_value_mark = ','.join(['%s'] * len(fixed_columns))
 
-            # 补充列名字符串、列值列表和列值占位字符串 - 其他列
+            # 补充列名字符串、列名类型字典、列值列表和列值占位字符串 - 其他列
             for name, data in datas.get('fields', dict()).items():
                 columns_name = ','.join([columns_name, name])
+                column_type.update({name: data.get('type', 'str')})
                 if data.get('type', None) == 'json':
                     value = json.dumps(data.get('value', None))
                 else:
@@ -150,9 +165,9 @@ def parse_data(flow, config, datas):
         elif isinstance(datas, list):
             # 获取第一个dict的schem.table名、非空列名和数据字段
             schema = datas[0].get('schema', 'public')
-            table = datas[0].get('table', 'no_table')
+            table = datas[0].get('table', 'example')
             column_ts = datas[0].get('timestamp', '1970-01-01 08:00:00')
-            column_id = datas[0].get('deviceid', 'no_id')
+            column_id = datas[0].get('deviceid', 'id')
 
             # 构建列名字符串 - 非空列
             columns_name = ','.join([column_ts_tag, column_id_tag])
@@ -162,6 +177,7 @@ def parse_data(flow, config, datas):
             # 补充列名字符串和列值占位字符串 - 其他列
             for name, data in datas[0].get('fields', dict()).items():
                 columns_name = ','.join([columns_name, name])
+                column_type.update({name: data.get('type', 'str')})
                 column_value_mark = ','.join([column_value_mark, '%s'])
 
             # 构建列值列表
@@ -203,6 +219,7 @@ def parse_data(flow, config, datas):
         data['table'] = table
         data['sql'] = SQL
         data['value'] = columns_value
+        data['column'] = column_type
 
         result.append(data)
         result.append(message)
