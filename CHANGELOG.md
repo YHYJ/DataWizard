@@ -8,6 +8,7 @@ CHANGELOG
 
 <!-- vim-markdown-toc GFM -->
 
+* [v0.7.0](#v070)
 * [v0.6.2](#v062)
 * [v0.6.1](#v061)
 * [v0.6.0](#v060)
@@ -26,6 +27,10 @@ CHANGELOG
 <!-- Object info -->
 
 ---
+
+## v0.7.0
+
+- `insert_nextgen`全面替换`insert`方法
 
 ## v0.6.2
 
