@@ -39,7 +39,7 @@ class Wizard(object):
         # [main] - Wizard配置
         main_conf = config.get('main', dict())
         self.number = main_conf.get('number') if main_conf.get(
-            'number', 0) > 0 else os.cpu_count()
+            'number', 0) > os.cpu_count() + 4 else os.cpu_count() + 4
 
         # [source] - 数据源配置
         source_conf = config.get('source', dict())
@@ -127,10 +127,10 @@ class Wizard(object):
 
     def start_wizard(self):
         """Main."""
-        with ThreadPoolExecutor(max_workers=self.number * len(self.topics),
+        with ThreadPoolExecutor(max_workers=self.number,
                                 thread_name_prefix='Wizard') as executor:
             executor.map(self.persistence,
-                         self.topics * self.number,
+                         self.topics,
                          chunksize=len(self.topics))
 
 

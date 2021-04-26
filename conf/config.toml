@@ -8,8 +8,8 @@ name = 'DataWizard'                         # NOTE: 程序名
 version = 'v0.6.1'                          # NOTE: 程序版本号
 
 
-[main]                                      # 主要配置
-number = 150                                # CHANGED: 池中的worker基数，为0则取值CPU核心数，不要小于写入source的进程数
+[main]                                      # 进程/线程配置
+number = 8                                  # CHANGED: 池中最大worker数，程序会确保至少是CPU核心数+4，根据同一时间要持久化多少条数据进行配置
 
 
 [source]                                    # 数据源配置
