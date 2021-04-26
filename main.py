@@ -38,8 +38,8 @@ class Wizard(object):
         """
         # [main] - Wizard配置
         main_conf = config.get('main', dict())
-        self.number = main_conf.get('number') + os.cpu_count(
-        ) if main_conf.get('number', 0) > 0 else os.cpu_count()
+        self.number = main_conf.get('number') if main_conf.get(
+            'number', 0) > 0 else os.cpu_count()
 
         # [source] - 数据源配置
         source_conf = config.get('source', dict())
