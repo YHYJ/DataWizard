@@ -5,7 +5,7 @@
 
 [app]                                       # 程序配置: 程序本身信息
 name = 'DataWizard'                         # NOTE: 程序名
-version = 'v0.7.0'                          # NOTE: 程序版本号
+version = 'v0.7.1'                          # NOTE: 程序版本号
 
 
 [main]                                      # 进程/线程配置

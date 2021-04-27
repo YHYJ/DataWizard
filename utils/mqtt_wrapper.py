@@ -19,11 +19,12 @@ logger = logging.getLogger('DataWizard.utils.mqtt_wrapper')
 
 class MqttWrapper(object):
     """Communicate with MQTT."""
-    def __init__(self, conf, queue_dict):
+    def __init__(self, conf, queue_dict, cordon):
         """Initialization.
 
-        :conf: Configuration info
+        :conf: configuration info
         :queue_dict: data queue, list {Queue1, Queue2, Queue3}
+        :cordon: queue size warning value
 
         """
         # MQTT
@@ -39,6 +40,9 @@ class MqttWrapper(object):
 
         # {Queue1, Queue2, Queue3}
         self.queue_dict = queue_dict
+
+        # cordon
+        self.cordon = cordon
 
         # MQTT client
         self._client = None
@@ -60,8 +64,8 @@ class MqttWrapper(object):
             self._client.connect(host=self._hostname,
                                  port=self._port,
                                  keepalive=self._keepalive)
-        except Exception as err:
-            logger.error("Connection error: {}".format(err))
+        except Exception as e:
+            logger.error("Connection error: {}".format(e))
 
     def __on_connect(self,
                      client,
@@ -165,7 +169,16 @@ class MqttWrapper(object):
         """
         topic = message.topic
         msg = message.payload
-        self.queue_dict.get(topic).put(msg)
+        queue = self.queue_dict.get(topic)
+        queue.put(msg)
+        qsize = queue.qsize()
+        logger.info("Put data to queue ({topic}), queue size = {size} ".format(
+            topic=topic, size=qsize))
+
+        if qsize >= self.cordon:
+            logger.error(
+                'Queue ({name}) is too big, empty it'.format(name=topic))
+            queue.queue.clear()
 
     def pub_message(self, msg):
         """Publish message to MQTT bridge."""
@@ -176,8 +189,8 @@ class MqttWrapper(object):
                 self._client.publish(topic=topic,
                                      payload=payload,
                                      qos=self._qos)
-        except Exception as err:
-            logger.error(err)
+        except Exception as e:
+            logger.error(e)
 
     def sub_message(self):
         """Subscribe to data from MQTT bridge."""
@@ -185,5 +198,5 @@ class MqttWrapper(object):
             for topic in self._topics:
                 self._client.subscribe(topic=topic, qos=self._qos)
             self._client.loop_start()
-        except Exception as err:
-            logger.error(err)
+        except Exception as e:
+            logger.error(e)

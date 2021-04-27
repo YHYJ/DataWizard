@@ -63,7 +63,9 @@ class Wizard(object):
 
         # 构建数据源客户端
         if source_select.lower() in ['mqtt']:
-            self.mqtt = MqttWrapper(source_entity, self.queue_dict)
+            self.mqtt = MqttWrapper(conf=source_entity,
+                                    queue_dict=self.queue_dict,
+                                    cordon=self.cordon)
 
         # 构建数据存储客户端
         if storage_select.lower() in ['postgresql']:
@@ -95,6 +97,9 @@ class Wizard(object):
             data_bytes = queue.get()
             qsize = queue.qsize()
             datas = self.convert(data_bytes)
+            logger.info(
+                "Get data from queue ({topic}), queue size = {size} ".format(
+                    topic=topic, size=qsize))
 
             start_time = time.time()
             result = parse_data(flow=self.storage_select,
@@ -105,17 +110,13 @@ class Wizard(object):
                 if res:
                     self.database.insert_nextgen(material=res)
             end_time = time.time()
+            logger.info('Time cost = {cost}s'.format(cost=end_time -
+                                                     start_time))
 
-            logger.info(("Got the data, "
-                         "Queue ({name}) size = {size} "
-                         "<--> Time cost = {cost}s").format(name=topic,
-                                                            size=qsize,
-                                                            cost=end_time -
-                                                            start_time))
             if qsize >= self.cordon:
                 logger.error(
-                    'Queue ({name}) is too big, stop it'.format(name=topic))
-                break
+                    'Queue ({name}) is too big, empty it'.format(name=topic))
+                queue.queue.clear()
 
     def start_mqtt(self):
         """启动Mqtt客户端订阅数据"""

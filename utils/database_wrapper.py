@@ -582,7 +582,7 @@ class PostgresqlWrapper(object):
             tag = 0
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug(
+            logger.info(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=schema, table_name=table))
 
@@ -590,7 +590,7 @@ class PostgresqlWrapper(object):
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.debug(
+                logger.info(
                     ("Data inserted into "
                      "({schema_name}.{table_name}) "
                      "successfully.").format(schema_name=self._message_schema,
@@ -623,16 +623,16 @@ class PostgresqlWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug(
+            logger.info(
                 "Data inserted into ({schema_name}.{table_name}) successfully."
                 .format(schema_name=curr_schema, table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.debug(("Data inserted into "
-                              "({schema_name}.{table_name}) "
-                              "successfully.").format(schema_name=curr_schema,
-                                                      table_name=curr_table))
+                logger.info(("Data inserted into "
+                             "({schema_name}.{table_name}) "
+                             "successfully.").format(schema_name=curr_schema,
+                                                     table_name=curr_table))
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
@@ -658,16 +658,16 @@ class PostgresqlWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(SQL, columns_value)
             self._database.commit()
-            logger.debug(
+            logger.info(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=curr_schema, table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.debug(("Data inserted into "
-                              "({schema_name}.{table_name}) "
-                              "successfully.").format(schema_name=curr_schema,
-                                                      table_name=curr_table))
+                logger.info(("Data inserted into "
+                             "({schema_name}.{table_name}) "
+                             "successfully.").format(schema_name=curr_schema,
+                                                     table_name=curr_table))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
@@ -691,7 +691,7 @@ class PostgresqlWrapper(object):
             cursor = self._database.cursor()
             cursor.executemany(sql, value)
             self._database.commit()
-            logger.debug(
+            logger.info(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=schema, table_name=table))
         except UndefinedTable as e:
@@ -703,20 +703,27 @@ class PostgresqlWrapper(object):
             self.create_hypertable(schema=schema,
                                    hypertable=table,
                                    columns=column_type)
+
             # 尝试再次执行SQL语句
             cursor = self._database.cursor()
             cursor.executemany(sql, value)
             self._database.commit()
-            logger.debug(
+            logger.info(
                 'Data inserted into ({schema_name}.{table_name}) successfully.'
                 .format(schema_name=schema, table_name=table))
         except UndefinedColumn as e:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=e))
             logger.info('Adding column ...')
-            self.add_column(schema=schema,
-                            table=table,
-                            columns=column_type)
+            self.add_column(schema=schema, table=table, columns=column_type)
+
+            # 尝试再次执行SQL语句
+            cursor = self._database.cursor()
+            cursor.executemany(sql, value)
+            self._database.commit()
+            logger.info(
+                'Data inserted into ({schema_name}.{table_name}) successfully.'
+                .format(schema_name=schema, table_name=table))
         except (OperationalError, InterfaceError):
             # 与数据库的连接断开，重新连接
             logger.error('Reconnect to the PostgreSQL ...')
