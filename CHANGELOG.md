@@ -8,6 +8,7 @@ CHANGELOG
 
 <!-- vim-markdown-toc GFM -->
 
+* [v0.7.1](#v071)
 * [v0.7.0](#v070)
 * [v0.6.2](#v062)
 * [v0.6.1](#v061)
@@ -27,6 +28,11 @@ CHANGELOG
 <!-- Object info -->
 
 ---
+
+## v0.7.1
+
+- 补充log
+- fixed bug
 
 ## v0.7.0
 
