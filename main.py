@@ -101,11 +101,11 @@ class Wizard(object):
                 "Get data from queue ({topic}), queue size = {size} ".format(
                     topic=topic, size=qsize))
 
-            start_time = time.time()
             result = parse_data(flow=self.storage_select,
                                 config=self.storage_conf,
                                 datas=datas)
-            #  self.database.insert(datas)
+            start_time = time.time()
+            #  self.database.insert_oldgen(datas)
             for res in result:
                 if res:
                     self.database.insert_nextgen(material=res)

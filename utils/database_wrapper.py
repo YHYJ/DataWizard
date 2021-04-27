@@ -439,7 +439,7 @@ class PostgresqlWrapper(object):
 
         return SQL, columns_value
 
-    def insert(self, datas):
+    def insert_oldgen(self, datas):
         """向数据表批量插入数据
         参数datas类型是list时需要保证其中每个dict的'schema'.'table'一致，且每个dict的'fields'的key相同
 
@@ -674,8 +674,8 @@ class PostgresqlWrapper(object):
         except Exception as err:
             logger.error(err)
 
-    def insert_nextgen(self, material):
-        """向数据表批量插入数据（次世代）
+    def insert(self, material):
+        """向数据表批量插入数据
 
         :material: 一个字典，数据入库用到的物料
 
@@ -794,7 +794,7 @@ if __name__ == "__main__":
     # 导入测试数据
     import sys
     sys.path.append('..')
-    from plugins.parser_postgresql import parse_system_monitor
+    from plugins.parser_postgresql import parse_data
     from tools.genesis import genesis
 
     # 加载配置文件
@@ -813,14 +813,10 @@ if __name__ == "__main__":
 
         # 测试插入数据，一条数据有578列
         datas = genesis()
-        result = parse_system_monitor(flow='postgresql',
-                                      config=storage_conf,
-                                      datas=datas)
-        schema = result.get('schema', str())
-        table = result.get('table', str())
-        sql = result.get('sql', str())
-        data = result.get('data', list())
-        client.insert_nextgen(schema=schema, table=table, sql=sql, value=data)
+        result = parse_data(flow='postgresql',
+                            config=storage_conf,
+                            datas=datas)
+        client.insert(material=result)
         print('>>> Data inserted')
 
         # 测试查询数据
