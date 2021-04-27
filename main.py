@@ -108,7 +108,7 @@ class Wizard(object):
             #  self.database.insert_oldgen(datas)
             for res in result:
                 if res:
-                    self.database.insert_nextgen(material=res)
+                    self.database.insert(material=res)
             end_time = time.time()
             logger.info('Time cost = {cost}s'.format(cost=end_time -
                                                      start_time))
