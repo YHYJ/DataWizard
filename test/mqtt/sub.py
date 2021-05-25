@@ -35,7 +35,7 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
 
 def on_disconnect(client, userdata, reasonCode, properties=None):
     """断开连接后事件"""
-    print("Disconnection with reasonCode = {}".format(reasonCode))
+    print('Disconnection with reasonCode = {}'.format(reasonCode))
     client.loop_stop()
 
 

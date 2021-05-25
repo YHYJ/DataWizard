@@ -32,7 +32,7 @@ def on_connect(client, userdata, flags, reasonCode, properties=None):
 
 def on_disconnect(client, userdata, reasonCode, properties=None):
     """断开连接后事件"""
-    print("Disconnection with reasonCode = {}".format(reasonCode))
+    print('Disconnection with reasonCode = {}'.format(reasonCode))
     client.loop_stop()
 
 

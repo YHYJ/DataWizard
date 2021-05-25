@@ -98,7 +98,7 @@ class Wizard(object):
             qsize = queue.qsize()
             datas = self.convert(data_bytes)
             logger.info(
-                "Get data from queue ({topic}), queue size = {size} ".format(
+                'Get data from queue ({topic}), queue size = {size}'.format(
                     topic=topic, size=qsize))
 
             result = parse_data(flow=self.storage_select,

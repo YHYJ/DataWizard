@@ -65,7 +65,7 @@ class MqttWrapper(object):
                                  port=self._port,
                                  keepalive=self._keepalive)
         except Exception as e:
-            logger.error("Connection error: {}".format(e))
+            logger.error('MQTT connection error: {}'.format(e))
 
     def __on_connect(self,
                      client,
@@ -111,7 +111,7 @@ class MqttWrapper(object):
                      For MQTT v3.1 and v3.1.1, properties = None
 
         """
-        logger.info("Disconnection with reasonCode = {}".format(reasonCode))
+        logger.info('MQTT disconnection, reasonCode = {}'.format(reasonCode))
 
     def __on_publish(self, client, userdata, mid):
         """called when a message that was to be sent using the publish()
@@ -172,7 +172,7 @@ class MqttWrapper(object):
         queue = self.queue_dict.get(topic)
         queue.put(msg)
         qsize = queue.qsize()
-        logger.info("Put data to queue ({topic}), queue size = {size} ".format(
+        logger.info('Put data to queue ({topic}), queue size = {size}'.format(
             topic=topic, size=qsize))
 
         if qsize >= self.cordon:

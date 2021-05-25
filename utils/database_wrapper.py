@@ -161,7 +161,7 @@ class PostgresqlWrapper(object):
             cursor.execute(SQL)
             self._database.commit()
         except DuplicateSchema as warn:
-            logger.warning("Duplicate schema: {warn}".format(warn=warn))
+            logger.warning('Duplicate schema: {warn}'.format(warn=warn))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
@@ -212,7 +212,7 @@ class PostgresqlWrapper(object):
             cursor.execute(SQL)
             self._database.commit()
         except DuplicateTable as warn:
-            logger.warning("Create table: {text}".format(text=warn))
+            logger.warning('Create table: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
@@ -300,11 +300,11 @@ class PostgresqlWrapper(object):
             self._database.commit()  # 在建表并设置为超表之后统一commit,否则可能会建一个普通表
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
-            logger.error("Undefined schema: {text}".format(text=warn))
+            logger.error('Undefined schema: {text}'.format(text=warn))
             logger.info('Creating schema ...')
             self.create_schema(schema=schema)
         except DuplicateTable as warn:  # Hypertable已存在
-            logger.warning("Duplicate hypertable: {text}".format(text=warn))
+            logger.warning('Duplicate hypertable: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
