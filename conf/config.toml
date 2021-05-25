@@ -51,8 +51,8 @@ select= 'postgresql'                        # CHANGED: 数据存储选择，可�
         ping = 1                            # NOTE: 何时检查连接：0/None - 永不；1(default) - 从pool中获取连接时；2 - 创建cursor时；4 - 执行查询时；7 - 始终
         [storage.postgresql.column]
         # 定义数据表的固有列名
-        column_ts = 'timestamp'             # CHANGED: 时间戳列名
-        column_id = 'deviceid'              # CHANGED: ID列名
+        column_ts = 'timestamp'             # CHANGED: 数据中的'timestamp'字段持久化时的列名
+        column_id = 'deviceid'              # CHANGED: 数据中的'deviceid'字段持久化时的列名
         [storage.postgresql.message]
         # message数据配置
         message_switch = true               # CHANGED: 是否要将数据中的message数据集中到独立的表里

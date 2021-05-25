@@ -132,12 +132,15 @@ class PostgresqlWrapper(object):
             try:
                 pool_obj = self._create_pool()
                 self._database = pool_obj.connection()
+                logger.info('Persistent database is connected')
                 break
             except OperationalError as err:
                 logger.error(
-                    "PostgreSQL Connection error: {error}".format(error=err))
+                    'Persistent database connection error: {text}'.format(
+                        text=err))
             except AttributeError:
-                logger.error("Pool failed, please check configuration.")
+                logger.error('Persistent database connection pool error, '
+                             'check configuration file')
             except Exception as err:
                 logger.error(err)
 
@@ -195,11 +198,11 @@ class PostgresqlWrapper(object):
                 data_type = 'VARCHAR'
 
             columns_name = ("{curr_columns}, "
-                            "{new_columns} {attr_1} {attr_2}").format(
+                            "{new_columns} {attr_1} {attr_2}".format(
                                 curr_columns=columns_name,
                                 new_columns=column,
                                 attr_1=data_type,
-                                attr_2='NULL')
+                                attr_2='NULL'))
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=table, columns=columns_name)
 
@@ -234,9 +237,9 @@ class PostgresqlWrapper(object):
         # 构建SQL语句元素
         proc = 'create_hypertable'
         columns_name = ("{column_ts} TIMESTAMP NOT NULL, "
-                        "{column_id} VARCHAR NOT NULL").format(
+                        "{column_id} VARCHAR NOT NULL".format(
                             column_ts=self._column_ts,
-                            column_id=self._column_id)
+                            column_id=self._column_id))
         for column, type_ in columns.items():
             if type_ in ['int', 'float']:
                 # int和float类型的数据默认存储为DOUBLE PRECISION
@@ -249,11 +252,11 @@ class PostgresqlWrapper(object):
                 data_type = 'VARCHAR'
 
             columns_name = ("{curr_columns}, "
-                            "{new_columns} {attr_1} {attr_2}").format(
+                            "{new_columns} {attr_1} {attr_2}".format(
                                 curr_columns=columns_name,
                                 new_columns=column,
                                 attr_1=data_type,
-                                attr_2='NULL')
+                                attr_2='NULL'))
 
         SQL = "CREATE TABLE {schema_name}.{table_name} ({columns});".format(
             schema_name=schema, table_name=hypertable, columns=columns_name)
@@ -263,8 +266,8 @@ class PostgresqlWrapper(object):
                      "JOIN pg_namespace "
                      "ON pg_catalog.pg_proc.pronamespace = pg_namespace.oid "
                      "WHERE proname = 'create_hypertable' "
-                     "AND pg_namespace.nspname = '{schema_name}');").format(
-                         schema_name=schema)
+                     "AND pg_namespace.nspname = '{schema_name}');".format(
+                         schema_name=schema))
 
         # 执行SQL语句
         try:
@@ -285,12 +288,12 @@ class PostgresqlWrapper(object):
             # 如果指定schema中没有create_hypertable存储过程，则使用public中的
             SQL_HYPERTABLE = ("SELECT {proc_schema_name}.{proc_name}("
                               "'{schema_name}.{table_name}', "
-                              "'{column_ts}');").format(
+                              "'{column_ts}');".format(
                                   proc_schema_name=proc_schema,
                                   proc_name=proc,
                                   schema_name=schema,
                                   table_name=hypertable,
-                                  column_ts=self._column_ts)
+                                  column_ts=self._column_ts))
 
             cursor.execute(SQL)
             cursor.execute(SQL_HYPERTABLE)
@@ -338,11 +341,11 @@ class PostgresqlWrapper(object):
                     data_type = 'VARCHAR'
 
                 SQL = ("ALTER TABLE {schema_name}.{table_name} "
-                       "ADD COLUMN IF NOT EXISTS {column_name} {data_type};"
-                       ).format(schema_name=schema,
-                                table_name=table,
-                                column_name=column,
-                                data_type=data_type)
+                       "ADD COLUMN IF NOT EXISTS {column_name} {data_type};".
+                       format(schema_name=schema,
+                              table_name=table,
+                              column_name=column,
+                              data_type=data_type))
 
                 # 执行SQL语句
                 cursor.execute(SQL)
@@ -427,15 +430,16 @@ class PostgresqlWrapper(object):
         columns_value.append(column_value)
 
         # 构建SQL语句
-        SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
-               "VALUES ({column_value});").format(
-                   # SCHEMA.TABLE
-                   schema_name=self._message_schema,
-                   table_name=self._message_table,
-                   # COLUMN NAME
-                   column_name=columns_name,
-                   # COLUMN VALUE
-                   column_value=columns_value_mark)
+        SQL = (
+            "INSERT INTO {schema_name}.{table_name} ({column_name}) "
+            "VALUES ({column_value});".format(
+                # SCHEMA.TABLE
+                schema_name=self._message_schema,
+                table_name=self._message_table,
+                # COLUMN NAME
+                column_name=columns_name,
+                # COLUMN VALUE
+                column_value=columns_value_mark))
 
         return SQL, columns_value
 
@@ -562,18 +566,19 @@ class PostgresqlWrapper(object):
             if self._message_switch and 'message' in datas['fields'].keys():
                 SQL_MSG, msgs_columns_value = self.fork_message(datas=datas)
         else:
-            logger.error("Data type error, 'datas' must be list or dict.")
+            logger.error("Data type error, 'datas' must be list or dict")
 
         # 构建SQL语句
-        SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
-               "VALUES ({column_value});").format(
-                   # SCHEMA.TABLE
-                   schema_name=schema,
-                   table_name=table,
-                   # COLUMN NAME
-                   column_name=columns_name,
-                   # COLUMN VALUE
-                   column_value=columns_value_mark)
+        SQL = (
+            "INSERT INTO {schema_name}.{table_name} ({column_name}) "
+            "VALUES ({column_value});".format(
+                # SCHEMA.TABLE
+                schema_name=schema,
+                table_name=table,
+                # COLUMN NAME
+                column_name=columns_name,
+                # COLUMN VALUE
+                column_value=columns_value_mark))
 
         # 执行SQL语句
         try:
@@ -583,18 +588,18 @@ class PostgresqlWrapper(object):
             cursor.executemany(SQL, columns_value)
             self._database.commit()
             logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully.'
-                .format(schema_name=schema, table_name=table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=schema, table_name=table))
 
             tag = 1
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.info(
-                    ("Data inserted into "
-                     "({schema_name}.{table_name}) "
-                     "successfully.").format(schema_name=self._message_schema,
-                                             table_name=self._message_table))
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) '
+                            'successfully'.format(
+                                schema_name=self._message_schema,
+                                table_name=self._message_table))
         except UndefinedTable as warn:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
@@ -624,15 +629,15 @@ class PostgresqlWrapper(object):
             cursor.executemany(SQL, columns_value)
             self._database.commit()
             logger.info(
-                "Data inserted into ({schema_name}.{table_name}) successfully."
-                .format(schema_name=curr_schema, table_name=curr_table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=curr_schema, table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.info(("Data inserted into "
-                             "({schema_name}.{table_name}) "
-                             "successfully.").format(schema_name=curr_schema,
-                                                     table_name=curr_table))
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) '
+                            'successfully'.format(schema_name=curr_schema,
+                                                  table_name=curr_table))
         except UndefinedColumn as warn:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
@@ -659,15 +664,15 @@ class PostgresqlWrapper(object):
             cursor.executemany(SQL, columns_value)
             self._database.commit()
             logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully.'
-                .format(schema_name=curr_schema, table_name=curr_table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=curr_schema, table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
-                logger.info(("Data inserted into "
-                             "({schema_name}.{table_name}) "
-                             "successfully.").format(schema_name=curr_schema,
-                                                     table_name=curr_table))
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) '
+                            'successfully'.format(schema_name=curr_schema,
+                                                  table_name=curr_table))
         except (OperationalError, InterfaceError):
             logger.error('Reconnect to the PostgreSQL ...')
             self._reconnect()
@@ -692,8 +697,8 @@ class PostgresqlWrapper(object):
             cursor.executemany(sql, value)
             self._database.commit()
             logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully.'
-                .format(schema_name=schema, table_name=table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=schema, table_name=table))
         except UndefinedTable as e:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=e))
@@ -709,8 +714,8 @@ class PostgresqlWrapper(object):
             cursor.executemany(sql, value)
             self._database.commit()
             logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully.'
-                .format(schema_name=schema, table_name=table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=schema, table_name=table))
         except UndefinedColumn as e:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=e))
@@ -722,8 +727,8 @@ class PostgresqlWrapper(object):
             cursor.executemany(sql, value)
             self._database.commit()
             logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully.'
-                .format(schema_name=schema, table_name=table))
+                'Data inserted into ({schema_name}.{table_name}) successfully'.
+                format(schema_name=schema, table_name=table))
         except (OperationalError, InterfaceError):
             # 与数据库的连接断开，重新连接
             logger.error('Reconnect to the PostgreSQL ...')
@@ -748,12 +753,12 @@ class PostgresqlWrapper(object):
 
         # 构建SQL语句
         SQL = ("SELECT {column} FROM {schema_name}.{table_name} "
-               "ORDER BY {order} DESC LIMIT {limit};").format(
+               "ORDER BY {order} DESC LIMIT {limit};".format(
                    column=column,
                    schema_name=schema,
                    table_name=table,
                    order=order,
-                   limit=limit)
+                   limit=limit))
 
         # 执行SQL语句
         try:

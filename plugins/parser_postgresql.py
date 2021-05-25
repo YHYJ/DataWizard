@@ -74,10 +74,10 @@ def fork_message(conf, datas):
 
     # 构建SQL语句
     SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
-           "VALUES ({column_value});").format(schema_name=message_schema,
-                                              table_name=message_table,
-                                              column_name=columns_name,
-                                              column_value=column_value_mark)
+           "VALUES ({column_value});".format(schema_name=message_schema,
+                                             table_name=message_table,
+                                             column_name=columns_name,
+                                             column_value=column_value_mark))
 
     # 构建返回值
     message = dict()
@@ -205,11 +205,11 @@ def parse_data(flow, config, datas):
 
         # 构建SQL语句
         SQL = ("INSERT INTO {schema_name}.{table_name} ({column_name}) "
-               "VALUES ({column_value});").format(
+               "VALUES ({column_value});".format(
                    schema_name=schema,
                    table_name=table,
                    column_name=columns_name,
-                   column_value=column_value_mark)
+                   column_value=column_value_mark))
 
         # 构建返回值
         result = list()
