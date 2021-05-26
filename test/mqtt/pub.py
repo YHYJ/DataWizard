@@ -32,8 +32,7 @@ def on_connect(client, userdata, flags, reasonCode, properties=None):
 
 def on_disconnect(client, userdata, reasonCode, properties=None):
     """断开连接后事件"""
-    print('Disconnection with reasonCode = {}'.format(reasonCode))
-    client.loop_stop()
+    print('MQTT disconnection, reasonCode = {}'.format(reasonCode))
 
 
 def on_publish(client, userdata, mid):
@@ -95,8 +94,18 @@ def start(tag):
             }
         }
         payload = json.dumps(data)
-        for topic in topics:
-            client.publish(topic=topic, payload=payload, qos=qos)
+
+        if client._state != 2:
+            # 发布/订阅
+            for topic in topics:
+                client.publish(topic=topic, payload=payload, qos=qos)
+        else:
+            print('连接失效，进行重连...')
+            client.disconnect()
+            client.loop_stop()
+            print('开始重连')
+            client.reconnect()
+            client.loop_start()
         time.sleep(1)
 
 
@@ -107,8 +116,8 @@ if __name__ == "__main__":
     alive = 60
 
     # publish参数
-    qos = 2
-    topics = ['topic']
+    qos = 0
+    topics = ['topic_x', 'topic_y']
 
     # 创建客户端
     client = mqtt.Client()

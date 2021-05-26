@@ -35,8 +35,7 @@ def on_subscribe(client, userdata, mid, granted_qos, properties=None):
 
 def on_disconnect(client, userdata, reasonCode, properties=None):
     """断开连接后事件"""
-    print('Disconnection with reasonCode = {}'.format(reasonCode))
-    client.loop_stop()
+    print('MQTT disconnection, reasonCode = {}'.format(reasonCode))
 
 
 def on_message(client, userdata, message):
@@ -57,7 +56,7 @@ if __name__ == "__main__":
 
     # subscribe参数
     qos = 0
-    topics = ['topic', 'topic_1']
+    topics = ['topic_x', 'topic_y']
 
     # 创建客户端
     client = mqtt.Client()
@@ -74,10 +73,19 @@ if __name__ == "__main__":
         port=port,
         keepalive=alive,
     )
-
-    # 订阅信息
-    for topic in topics:
-        client.subscribe(topic, qos)
-
     # 守护连接状态
-    client.loop_forever()
+    client.loop_start()
+
+    while True:
+        if client._state != 2:
+            # 发布/订阅
+            for topic in topics:
+                client.subscribe(topic, qos)
+        else:
+            print('连接失效，进行重连...')
+            client.disconnect()
+            client.loop_stop()
+            print('开始重连')
+            client.reconnect()
+            client.loop_start()
+        time.sleep(1)
