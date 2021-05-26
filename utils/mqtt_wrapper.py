@@ -11,6 +11,7 @@ Description: 向MQTT bridge发布/订阅消息
 
 import json
 import logging
+import time
 
 import paho.mqtt.client as Mqtt
 
@@ -180,10 +181,25 @@ class MqttWrapper(object):
                 'Queue ({name}) is too big, empty it'.format(name=topic))
             queue.queue.clear()
 
+    def _reconnect(self):
+        """Reconnect to MQTT."""
+        while True:
+            self._client.disconnect()
+            self._client.loop_stop()
+            self._client.reconnect()
+            self._client.loop_start()
+            if self._client._state != 2:
+                break
+
     def pub_message(self, msg):
         """Publish message to MQTT bridge."""
         try:
             self._client.loop_start()
+            if self._client._state == 2:
+                # Reconnect
+                logger.warning('MQTT connection failed, reconnecting...')
+                self._reconnect()
+
             payload = json.dumps(msg)
             for topic in self._topics:
                 self._client.publish(topic=topic,
@@ -195,8 +211,13 @@ class MqttWrapper(object):
     def sub_message(self):
         """Subscribe to data from MQTT bridge."""
         try:
+            self._client.loop_start()
+            if self._client._state == 2:
+                # Reconnect
+                logger.warning('MQTT connection failed, reconnecting...')
+                self._reconnect()
+
             for topic in self._topics:
                 self._client.subscribe(topic=topic, qos=self._qos)
-            self._client.loop_start()
         except Exception as e:
             logger.error(e)

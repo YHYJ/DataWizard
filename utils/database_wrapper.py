@@ -163,7 +163,7 @@ class PostgresqlWrapper(object):
         except DuplicateSchema as warn:
             logger.warning('Duplicate schema: {warn}'.format(warn=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -214,7 +214,7 @@ class PostgresqlWrapper(object):
         except DuplicateTable as warn:
             logger.warning('Create table: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -301,12 +301,12 @@ class PostgresqlWrapper(object):
         except InvalidSchemaName as warn:  # Schema不存在
             # 尝试创建Schema
             logger.error('Undefined schema: {text}'.format(text=warn))
-            logger.info('Creating schema ...')
+            logger.info('Creating schema...')
             self.create_schema(schema=schema)
         except DuplicateTable as warn:  # Hypertable已存在
             logger.warning('Duplicate hypertable: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -351,7 +351,7 @@ class PostgresqlWrapper(object):
                 cursor.execute(SQL)
                 self._database.commit()
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -604,13 +604,13 @@ class PostgresqlWrapper(object):
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=warn))
             # 尝试创建Schema
-            logger.info('Creating schema ...')
+            logger.info('Creating schema...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             curr_schema = schema if tag == 0 else self._message_schema
             curr_table = table if tag == 0 else self._message_table
             self.create_schema(schema=curr_schema)
             # 尝试创建Hypertable
-            logger.info('Creating hypertable ...')
+            logger.info('Creating hypertable...')
             columns = dict()
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
@@ -642,7 +642,7 @@ class PostgresqlWrapper(object):
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=warn))
             # 尝试添加Column
-            logger.info('Adding column ...')
+            logger.info('Adding column...')
             # # 根据tag（指明了try中运行到哪一步）决定参数值
             curr_schema = schema if tag == 0 else self._message_schema
             curr_table = table if tag == 0 else self._message_table
@@ -674,7 +674,7 @@ class PostgresqlWrapper(object):
                             'successfully'.format(schema_name=curr_schema,
                                                   table_name=curr_table))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -702,9 +702,9 @@ class PostgresqlWrapper(object):
         except UndefinedTable as e:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=e))
-            logger.info('Creating schema ...')
+            logger.info('Creating schema...')
             self.create_schema(schema=schema)
-            logger.info('Creating hypertable ...')
+            logger.info('Creating hypertable...')
             self.create_hypertable(schema=schema,
                                    hypertable=table,
                                    columns=column_type)
@@ -719,7 +719,7 @@ class PostgresqlWrapper(object):
         except UndefinedColumn as e:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=e))
-            logger.info('Adding column ...')
+            logger.info('Adding column...')
             self.add_column(schema=schema, table=table, columns=column_type)
 
             # 尝试再次执行SQL语句
@@ -731,7 +731,7 @@ class PostgresqlWrapper(object):
                 format(schema_name=schema, table_name=table))
         except (OperationalError, InterfaceError):
             # 与数据库的连接断开，重新连接
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as e:
             # 未知错误
@@ -769,7 +769,7 @@ class PostgresqlWrapper(object):
         except (UndefinedTable, UndefinedColumn) as warn:
             logger.error('Query error: {text}'.format(text=warn))
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
@@ -789,7 +789,7 @@ class PostgresqlWrapper(object):
             self._database.commit()
             print(data)
         except (OperationalError, InterfaceError):
-            logger.error('Reconnect to the PostgreSQL ...')
+            logger.error('Reconnect to the PostgreSQL...')
             self._reconnect()
         except Exception as err:
             logger.error(err)
