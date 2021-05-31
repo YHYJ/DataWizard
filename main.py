@@ -14,6 +14,7 @@ Description: 将data和message从缓存(redis, mqtt ...)持久化到数据库(Po
 import json
 import logging
 import os
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
@@ -112,6 +113,9 @@ class Wizard(object):
             end_time = time.time()
             logger.info('Time cost = {cost}s'.format(cost=end_time -
                                                      start_time))
+
+            logger.info("Currently active thrends = {count}".format(
+                count=threading.active_count()))
 
             if qsize >= self.cordon:
                 logger.error(

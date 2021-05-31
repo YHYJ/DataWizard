@@ -170,11 +170,13 @@ class MqttWrapper(object):
         """
         topic = message.topic
         msg = message.payload
+        logger.info(
+            'Message received from ({topic}) topic'.format(topic=topic))
         queue = self.queue_dict.get(topic)
         queue.put(msg)
         qsize = queue.qsize()
-        logger.info('Put data to queue ({topic}), queue size = {size}'.format(
-            topic=topic, size=qsize))
+        logger.info(
+            'Message put in the queue, queue size = {size}'.format(size=qsize))
 
         if qsize >= self.cordon:
             logger.error(
