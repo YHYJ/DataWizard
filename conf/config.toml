@@ -9,7 +9,7 @@ version = 'v0.7.2'                          # NOTE: 程序版本号
 
 
 [main]                                      # 进程/线程配置
-number = 8                                  # CHANGED: 池中最大worker基数（程序会确保至少是CPU核心数+4），根据数据源频率和服务器性能计算得出（见README.md）
+number = 8                                  # CHANGED: 池中每个topic的最大worker数（至少是CPU核心数+4），根据数据源频率和服务器性能计算得出（见README.md）
 
 
 [source]                                    # 数据源配置
