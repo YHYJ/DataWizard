@@ -8,6 +8,7 @@ CHANGELOG
 
 <!-- vim-markdown-toc GFM -->
 
+* [v0.7.3](#v073)
 * [v0.7.2](#v072)
 * [v0.7.1](#v071)
 * [v0.7.0](#v070)
@@ -29,6 +30,10 @@ CHANGELOG
 更新日志
 
 ---
+
+## v0.7.3
+
+- mqtt_wrapper修改前最后一个tag
 
 ## v0.7.2
 
