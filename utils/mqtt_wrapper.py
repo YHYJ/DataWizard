@@ -4,9 +4,9 @@
 File: mqtt_wrapper.py
 Author: YJ
 Email: yj1516268@outlook.com
-Created Time: 2020-11-06 16:04:20
+Created Time: 2021-06-02 14:38:24
 
-Description: 向MQTT bridge发布/订阅消息
+Description: 与MQTT Broker进行交互
 """
 
 import json
@@ -14,212 +14,134 @@ import logging
 import time
 
 import paho.mqtt.client as Mqtt
+import toml
 
 logger = logging.getLogger('DataWizard.utils.mqtt_wrapper')
 
+# Load configuration file
+confile = 'conf/config.toml'
+config = toml.load(confile)
 
-class MqttWrapper(object):
-    """Communicate with MQTT."""
-    def __init__(self, conf, queue_dict, cordon):
-        """Initialization.
+# MQTT Broker configuration
+# 数据源配置
+source_conf = config.get('source', dict())
+# MQTT配置
+mqtt_conf = source_conf.get('mqtt', dict())
+# 连接参数
+HOSTNAME = mqtt_conf.get('host', '127.0.0.1')
+PORT = mqtt_conf.get('port', 1883)
+USERNAME = mqtt_conf.get('username', None)
+PASSWORD = mqtt_conf.get('password', None)
+CLIENTID = mqtt_conf.get('clientid', str())
+CLEAN = mqtt_conf.get('clean', False if CLIENTID else True)
+TOPICS = mqtt_conf.get('topics', list())
+QOS = mqtt_conf.get('qos', 0)
+KEEPALIVE = mqtt_conf.get('keepalive', 60)
 
-        :conf: configuration info
-        :queue_dict: data queue, list {Queue1, Queue2, Queue3}
-        :cordon: queue size warning value
+# Cache cordon configuration
+# 缓存配置
+cache_conf = config.get('cache', dict())
+# 队列大小警戒线
+CORDON = cache_conf.get('cordon', 5000)
 
-        """
-        # MQTT
-        self._hostname = conf.get('host', '127.0.0.1')
-        self._port = conf.get('port', 1883)
-        self._username = conf.get('username', None)
-        self._password = conf.get('password', None)
-        self._clientid = clientid = conf.get('clientid', str())
-        self._clean = conf.get('clean', False if clientid else True)
-        self._topics = conf.get('topics', list())
-        self._qos = conf.get('qos', 2)
-        self._keepalive = conf.get('keepalive', 60)
 
-        # {Queue1, Queue2, Queue3}
-        self.queue_dict = queue_dict
+def __on_connect(client, userdata, flags, reasonCode):
+    if reasonCode == 0:
+        logger.info('Connected to MQTT Broker')
+    else:
+        logger.error('MQTT Broker connection failed, return code = {}'.format(
+            reasonCode))
 
-        # cordon
-        self.cordon = cordon
 
-        # MQTT client
-        self._client = None
-        self._connect()
+def __on_disconnect(client, userdata, reasonCode):
+    logger.info(
+        'MQTT Broker disconnection, return code = {}'.format(reasonCode))
 
-    def _connect(self):
-        """Connect to MQTT."""
-        self._client = Mqtt.Client(client_id=self._clientid,
-                                   clean_session=self._clean)
-        self._client.username_pw_set(self._username, self._password)
 
-        self._client.on_connect = self.__on_connect
-        self._client.on_disconnect = self.__on_disconnect
-        self._client.on_publish = self.__on_publish
-        self._client.on_subscribe = self.__on_subscribe
-        self._client.on_message = self.__on_message
+def __on_publish(client, userdata, mid):
+    logger.info('Published success, mid = {}'.format(mid))
 
-        try:
-            self._client.connect(host=self._hostname,
-                                 port=self._port,
-                                 keepalive=self._keepalive)
-        except Exception as e:
-            logger.error('MQTT connection error: {}'.format(e))
 
-    def __on_connect(self,
-                     client,
-                     userdata,
-                     flags,
-                     reasonCode,
-                     properties=None):
-        """called when the broker respo nds to our connection request.
+def __on_subscribe(client, userdata, mid, granted_qos):
+    logger.info('Subscribed success, mid = {}, granted_qos = {}'.format(
+        mid, granted_qos))
 
-        :client: client instance that is calling the callback
-        :userdata: user data of any type
-        :flags: a dict that contains response flags from the broker
-        :reasonCode: the connection result
-                     May be compared to interger
-        :properties: the MQTT v5.0 properties returned from the broker
-                     For MQTT v3.1 and v3.1.1, properties = None
 
-        The value of reasonCode indicates success or not:
-            0: Connection successful
-            1: Connection refused - incorrect protocol version
-            2: Connection refused - invalid client identifier
-            3: Connection refused - server unavailable
-            4: Connection refused - bad username or password
-            5: Connection refused - not authorised
-            6-255: Currently unused
+# MQTT Broker client
+client = Mqtt.Client(client_id=CLIENTID, clean_session=CLEAN)
+client.username_pw_set(USERNAME, PASSWORD)
+try:
+    client.connect(host=HOSTNAME, port=PORT, keepalive=KEEPALIVE)
+except Exception as e:
+    logger.error('MQTT connection error: {}'.format(e))
+client.on_connect = __on_connect
+client.on_disconnect = __on_disconnect
+client.on_publish = __on_publish
+client.on_subscribe = __on_subscribe
 
-        """
-        if reasonCode == 0:
-            logger.info('MQTT bridge connected')
+
+def __reconnect():
+    """MQTT Broker断线重连函数"""
+    client.disconnect()
+    client.loop_stop()
+    client.reconnect()
+    client.loop_start()
+
+
+def publisher(message):
+    """发布者，将消息发布到MQTT Broker指定主题
+
+    :message: 待发布消息
+    """
+    client.loop_start()
+
+    while True:
+        if client._state != 2:
+            payload = json.dumps(message)
+            for topic in TOPICS:
+                result = client.publish(topic=topic, payload=payload, qos=QOS)
+                status = result[0]
+                if status == 0:
+                    logger.info('Send message to topic ({})'.format(topic))
+                else:
+                    logger.error(
+                        'Failed to send message to topic ({})'.format(topic))
         else:
-            logger.error(
-                'Connection error, reasonCode = {}'.format(reasonCode))
-            client.disconnect()
+            logger.warning('MQTT connection lost, reconnecting...')
+            __reconnect()
+        time.sleep(2)
 
-    def __on_disconnect(self, client, userdata, reasonCode, properties=None):
-        """called when the client disconnects from the broker.
 
-        :client: client instance that is calling the callback
-        :userdata: user data of any type
-        :reasonCode: the disconnection result
-                     The reasonCode parameter indicates the disconnection state
-        :properties: the MQTT v5.0 properties returned from the broker
-                     For MQTT v3.1 and v3.1.1, properties = None
+def subscriber(queues):
+    """订阅者，从MQTT Broker指定主题订阅消息
 
-        """
-        logger.info('MQTT disconnection, reasonCode = {}'.format(reasonCode))
-
-    def __on_publish(self, client, userdata, mid):
-        """called when a message that was to be sent using the publish()
-        call has completed transmission to the broker.
-
-        For messages with QoS levels:
-            0 -- this simply means that the message has left the client
-            1 or 2 -- this means that the appropriate handshakes have completed
-        Even if the publish() call returns success,
-        it doesn't always mean that the message has been sent.
-
-        :client: client instance that is calling the callback
-        :userdata: user data of any type
-        :mid: matches the mid variable returned from the corresponding
-              publish() call, to allow outgoing messages to be tracked
-
-        """
-        logger.info('Published success, mid = {}'.format(mid))
-
-    def __on_subscribe(self,
-                       client,
-                       userdata,
-                       mid,
-                       granted_qos,
-                       properties=None):
-        """called when the broker responds to a subscribe request.
-
-        :client: client instance that is calling the callback
-        :userdata: user data of any type
-        :mid: matches the mid variable returned from the corresponding
-              publish() call, to allow outgoing messages to be tracked
-        :granted_qos: list of integers that give the QoS level the broker has
-                      granted for each of the different subscription requests
-        :properties: the MQTT v5.0 properties returned from the broker
-                     For MQTT v3.1 and v3.1.1, properties = None
-
-        Expected signature for MQTT v3.1.1 and v3.1 is:
-            callback(client, userdata, mid, granted_qos, properties=None)
-
-        and for MQTT v5.0:
-            callback(client, userdata, mid, reasonCodes, properties)
-
-        """
-        logger.info('Subscribed success, mid = {} granted_qos = {} '.format(
-            mid, granted_qos))
-
-    def __on_message(self, client, userdata, message):
-        """called when a message has been received on a topic.
-
-        :client: client instance that is calling the callback
-        :userdata: user data of any type
-        :message: an instance of MQTTMessage
-                  This is a class with members topic, payload, qos, retain.
-
-        """
+    :queues: 队列字典，须topic和queue对应，例如：{'topic': Queue()}
+    """
+    def on_message(client, userdata, message):
         topic = message.topic
         msg = message.payload
         logger.info(
-            'Message received from ({topic}) topic'.format(topic=topic))
-        queue = self.queue_dict.get(topic)
+            'Received message from ({topic}) topic'.format(topic=topic))
+        queue = queues.get(topic)
         queue.put(msg)
         qsize = queue.qsize()
-        logger.info(
-            'Message put in the queue, queue size = {size}'.format(size=qsize))
+        logger.info('Put the message in the queue, queue size = {size}'.format(
+            size=qsize))
 
-        if qsize >= self.cordon:
+        # 队列大小检测
+        if qsize >= CORDON:
             logger.error(
                 'Queue ({name}) is too big, empty it'.format(name=topic))
             queue.queue.clear()
 
-    def _reconnect(self):
-        """Reconnect to MQTT."""
-        while True:
-            self._client.disconnect()
-            self._client.loop_stop()
-            self._client.reconnect()
-            self._client.loop_start()
-            if self._client._state != 2:
-                break
+    client.on_message = on_message
+    client.loop_start()
 
-    def pub_message(self, msg):
-        """Publish message to MQTT bridge."""
-        try:
-            self._client.loop_start()
-            if self._client._state == 2:
-                # Reconnect
-                logger.warning('MQTT connection failed, reconnecting...')
-                self._reconnect()
-
-            payload = json.dumps(msg)
-            for topic in self._topics:
-                self._client.publish(topic=topic,
-                                     payload=payload,
-                                     qos=self._qos)
-        except Exception as e:
-            logger.error(e)
-
-    def sub_message(self):
-        """Subscribe to data from MQTT bridge."""
-        try:
-            self._client.loop_start()
-            if self._client._state == 2:
-                # Reconnect
-                logger.warning('MQTT connection failed, reconnecting...')
-                self._reconnect()
-
-            for topic in self._topics:
-                self._client.subscribe(topic=topic, qos=self._qos)
-        except Exception as e:
-            logger.error(e)
+    while True:
+        if client._state != 2:
+            for topic in TOPICS:
+                client.subscribe(topic=topic, qos=QOS)
+        else:
+            logger.warning('MQTT connection lost, reconnecting...')
+            __reconnect()
+        time.sleep(2)

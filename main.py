@@ -17,14 +17,14 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
+from multiprocessing import Process, Queue
 
 import toml
 
 from plugins.parser_postgresql import parse_data
 from utils.database_wrapper import PostgresqlWrapper
 from utils.log_wrapper import setup_logging
-from utils.mqtt_wrapper import MqttWrapper
+from utils.mqtt_wrapper import subscriber
 
 logger = logging.getLogger('DataWizard.main')
 
@@ -44,8 +44,9 @@ class Wizard(object):
 
         # [source] - 数据源配置
         source_conf = config.get('source', dict())
-        source_select = source_conf.get('select', 'mqtt')
+        self.source_select = source_select = source_conf.get('select', 'mqtt')
         source_entity = source_conf.get(source_select.lower(), dict())
+        self.topics = source_entity.get('topics', list())
 
         # [cache] - 缓存配置
         cache_conf = config.get('cache', dict())
@@ -58,15 +59,8 @@ class Wizard(object):
         storage_entity = storage_conf.get(storage_select.lower(), dict())
 
         # 根据topic数量动态构造数据缓存队列的字典
-        self.topics = source_entity.get('topics', list())
         queues = [Queue() for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
-
-        # 构建数据源客户端
-        if source_select.lower() in ['mqtt']:
-            self.mqtt = MqttWrapper(conf=source_entity,
-                                    queue_dict=self.queue_dict,
-                                    cordon=self.cordon)
 
         # 构建数据存储客户端
         if storage_select.lower() in ['postgresql']:
@@ -122,11 +116,11 @@ class Wizard(object):
                     'Queue ({name}) is too big, empty it'.format(name=topic))
                 queue.queue.clear()
 
-    def start_mqtt(self):
-        """启动Mqtt客户端订阅数据"""
-        self.mqtt.sub_message()
-        logger.info('Subscribing to data from MQTT topic {}'.format(
-            self.topics))
+    def start_source(self):
+        """启动数据源客户端获取数据"""
+        logger.info('Get data from {}'.format(self.source_select.upper()))
+        if self.source_select.lower() in ['mqtt']:
+            subscriber(queues=self.queue_dict)
 
     def start_wizard(self):
         """Main"""
@@ -149,5 +143,10 @@ if __name__ == "__main__":
     logger.info('{name}({version}) start running'.format(name=app_name,
                                                          version=app_version))
 
-    wizard.start_mqtt()
-    wizard.start_wizard()
+    # 创建并启动进程
+    source = Process(target=wizard.start_source)
+    wizard = Process(target=wizard.start_wizard)
+    source.start()
+    wizard.start()
+    source.join()
+    wizard.join()

@@ -5,7 +5,7 @@
 
 [app]                                       # 程序配置: 程序本身信息
 name = 'DataWizard'                         # NOTE: 程序名
-version = 'v0.7.3'                          # NOTE: 程序版本号
+version = 'v0.8.0'                          # NOTE: 程序版本号
 
 
 [main]                                      # 进程/线程配置
@@ -69,7 +69,7 @@ select= 'postgresql'                        # CHANGED: 数据存储选择，可�
 console = true                              # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
 console_level = 'DEBUG'                     # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                 # NOTE: 是否要将log输出到文件中
-file_level = 'WARNING'                      # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+file_level = 'INFO'                         # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 log_file = 'logs/log.log'                   # NOTE: log文件存储路径
 max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
 backup_count = 10                           # NOTE: 最大log文件数

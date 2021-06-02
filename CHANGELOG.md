@@ -8,6 +8,7 @@ CHANGELOG
 
 <!-- vim-markdown-toc GFM -->
 
+* [v0.8.0](#v080)
 * [v0.7.3](#v073)
 * [v0.7.2](#v072)
 * [v0.7.1](#v071)
@@ -30,6 +31,11 @@ CHANGELOG
 更新日志
 
 ---
+
+## v0.8.0
+
+- start_source和start_wizard分到两个进程运行
+- 重写mqtt_wrapper，函数取代类
 
 ## v0.7.3
 
