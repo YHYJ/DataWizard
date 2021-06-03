@@ -100,13 +100,12 @@ class Wizard(object):
                                 config=self.storage_conf,
                                 datas=datas)
             start_time = time.time()
-            #  self.database.insert_oldgen(datas)
             for res in result:
                 if res:
                     self.database.insert(material=res)
             end_time = time.time()
-            logger.info('Time cost = {cost}s'.format(cost=end_time -
-                                                     start_time))
+            logger.info('Persistence time cost: {cost}s'.format(cost=end_time -
+                                                                start_time))
 
             logger.info("Currently active thrends = {count}".format(
                 count=threading.active_count()))
