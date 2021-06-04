@@ -91,18 +91,19 @@ class Wizard(object):
             queue = self.queue_dict.get(topic)
             data_bytes = queue.get()
             qsize = queue.qsize()
-            datas = self.convert(data_bytes)
             logger.info(
                 'Get data from queue ({topic}), queue size = {size}'.format(
                     topic=topic, size=qsize))
 
-            result = parse_data(flow=self.storage_select,
-                                config=self.storage_conf,
-                                datas=datas)
+            datas = self.convert(data_bytes)
+            #  result = parse_data(flow=self.storage_select,
+            #                      config=self.storage_conf,
+            #                      datas=datas)
             start_time = time.time()
-            for res in result:
-                if res:
-                    self.database.insert(material=res)
+            self.database.insert_oldgen(datas)
+            #  for res in result:
+            #      if res:
+            #          self.database.insert(material=res)
             end_time = time.time()
             logger.info('Persistence time cost: {cost}s'.format(cost=end_time -
                                                                 start_time))
