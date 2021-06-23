@@ -15,6 +15,50 @@ import logging
 logger = logging.getLogger('DataWizard.plugins.parser_postgresql')
 
 
+def checker(data):
+    """检查数据结构是否符合要求
+
+    :data: 待检查数据
+    :returns: int
+
+    """
+    # 默认检查结果符合要求
+    result = 1
+
+    if isinstance(data, dict):
+        # 当data是字典，只有其'fields'元素的值是个双层嵌套字典才符合要求
+        fields = data.get('fields')
+        # 检查'fields'是否非空字典
+        if fields and isinstance(fields, dict):
+            for field in fields.values():
+                # 检查'fields'的第二层是否字典
+                if not isinstance(field, dict):
+                    result -= 1
+        else:
+            result -= 1
+    elif isinstance(data, list):
+        # 当data是列表，只有其每个元素都是字典
+        # 且每个字典的'fields'元素的值是个双层嵌套字典才符合要求
+        for dat in data:
+            # 检查列表的元素是否非空字典
+            if dat and isinstance(dat, dict):
+                fields = dat.get('fields')
+                # 检查'fields'是否非空字典
+                if fields and isinstance(fields, dict):
+                    for field in fields.values():
+                        # 检查'fields'的第二层是否字典
+                        if not isinstance(field, dict):
+                            result -= 1
+                else:
+                    result -= 1
+            else:
+                result -= 1
+    else:
+        result -= 1
+
+    return result
+
+
 def fork_message(conf, datas):
     """转储message数据到一个独立的数据表
 

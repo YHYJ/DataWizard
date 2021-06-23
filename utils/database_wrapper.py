@@ -30,6 +30,50 @@ except (ModuleNotFoundError, Exception):
 logger = logging.getLogger('DataWizard.utils.database_wrapper')
 
 
+def checker(data):
+    """检查数据结构是否符合要求
+
+    :data: 待检查数据
+    :returns: int
+
+    """
+    # 默认检查结果符合要求
+    result = 1
+
+    if isinstance(data, dict):
+        # 当data是字典，只有其'fields'元素的值是个双层嵌套字典才符合要求
+        fields = data.get('fields')
+        # 检查'fields'是否非空字典
+        if fields and isinstance(fields, dict):
+            for field in fields.values():
+                # 检查'fields'的第二层是否字典
+                if not isinstance(field, dict):
+                    result -= 1
+        else:
+            result -= 1
+    elif isinstance(data, list):
+        # 当data是列表，只有其每个元素都是字典
+        # 且每个字典的'fields'元素的值是个双层嵌套字典才符合要求
+        for dat in data:
+            # 检查列表的元素是否非空字典
+            if dat and isinstance(dat, dict):
+                fields = dat.get('fields')
+                # 检查'fields'是否非空字典
+                if fields and isinstance(fields, dict):
+                    for field in fields.values():
+                        # 检查'fields'的第二层是否字典
+                        if not isinstance(field, dict):
+                            result -= 1
+                else:
+                    result -= 1
+            else:
+                result -= 1
+    else:
+        result -= 1
+
+    return result
+
+
 class PostgresqlWrapper(object):
     """PostgreSQL的包装器
 
@@ -486,7 +530,8 @@ class PostgresqlWrapper(object):
 
         """
         tag = 0  # 运行进度标志
-        # SQL_MSG、COLUMN NAME和COLUMN VALUE
+        # SQL、SQL_MSG、COLUMN NAME和COLUMN VALUE
+        SQL = str()  # Data SQL statement
         SQL_MSG = str()  # Message SQL statement
         schema = str()  # SCHEMA name
         table = str()  # TABLE name
@@ -497,104 +542,140 @@ class PostgresqlWrapper(object):
         msgs_columns_value = list()  # 多个日志信息的COLUMN VALUE field
 
         if isinstance(datas, list):
-            # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(
-                schema_name=datas[0].get('schema', 'public'))
-            table = "{table_name}".format(
-                table_name=datas[0].get('table', 'example'))
-            timestamp = "{ts_field}".format(
-                ts_field=datas[0].get('timestamp', '0000-00-00 08:00:00'))
-            id_ = "{id_name}".format(id_name=datas[0].get('deviceid', 'ID'))
+            # 判断数据结构是否符合要求
+            result = checker(datas)
+            judge = True if result == 1 else False
+            if judge:
+                # schema.table value和timestamp/id value
+                schema = "{schema_name}".format(
+                    schema_name=datas[0].get('schema', 'public'))
+                table = "{table_name}".format(
+                    table_name=datas[0].get('table', 'example'))
+                timestamp = "{ts_field}".format(
+                    ts_field=datas[0].get('timestamp', '0000-00-00 08:00:00'))
+                id_ = "{id_name}".format(
+                    id_name=datas[0].get('deviceid', 'ID'))
 
-            # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
-            # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self._column_ts, self._column_id])
-            # # 构建COLUMN VALUE
-            column_value.append(timestamp)  # 固有的时间戳列
-            column_value.append(id_)  # 固有的ID列
-            # # 构建COLUMN MARK
-            columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
-            # # 完善COLUMN NAME和COLUMN MARK
-            for column, data in datas[0].get('fields', dict()).items():
-                # 完善COLUMN NAME
-                columns_name = ",".join([columns_name, column])
-                # 完善COLUMN MARK
-                columns_value_mark = ",".join([columns_value_mark, "%s"])
-            # 完善COLUMN VALUE
-            for data in datas:
-                # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
-                if self._message_switch and 'message' in data.get('fields', dict()).keys():
-                    SQL_MSG, msgs_columns_value = self.fork_message(datas=data)
-                for column in data.get('fields', dict()).values():
-                    # 构建COLUMN VALUE
-                    column_value.append(column.get('value', None))
-                # 合并多个VALUE
-                columns_value.append(column_value)
-                # 初始化column_value，防止两个data的value混淆
-                column_value = list()  # 单个COLUMN VALUE field
+                # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
+                # # 构建COLUMN NAME（固有列）
+                columns_name = ",".join([self._column_ts, self._column_id])
+                # # 构建COLUMN VALUE
                 column_value.append(timestamp)  # 固有的时间戳列
                 column_value.append(id_)  # 固有的ID列
-        elif isinstance(datas, dict):
-            # schema.table value和timestamp/id value
-            schema = "{schema_name}".format(
-                schema_name=datas.get('schema', 'public'))
-            table = "{table_name}".format(
-                table_name=datas.get('table', 'example'))
-            timestamp = "{ts_field}".format(
-                ts_field=datas.get('timestamp', '0000-00-00 08:00:00'))
-            id_ = "{id_name}".format(id_name=datas.get('deviceid', 'ID'))
-
-            # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
-            # # 构建COLUMN NAME（固有列）
-            columns_name = ",".join([self._column_ts, self._column_id])
-            # # 构建COLUMN VALUE
-            column_value.append(timestamp)  # 固有的时间戳列
-            column_value.append(id_)  # 固有的ID列
-            # # 构建COLUMN MARK
-            columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
-            # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
-            for column, data in datas.get('fields', dict()).items():
-                # 完善COLUMN NAME
-                columns_name = ",".join([columns_name, column])
+                # # 构建COLUMN MARK
+                columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
+                # # 完善COLUMN NAME和COLUMN MARK
+                for column, data in datas[0].get('fields', dict()).items():
+                    # 完善COLUMN NAME
+                    columns_name = ",".join([columns_name, column])
+                    # 完善COLUMN MARK
+                    columns_value_mark = ",".join([columns_value_mark, "%s"])
                 # 完善COLUMN VALUE
-                if data.get('type', 'str') == 'json':
-                    value = json.dumps(data.get('value', None))
-                else:
-                    value = data.get('value', None)
-                column_value.append(value)
-                # 完善COLUMN MARK
-                columns_value_mark = ",".join([columns_value_mark, "%s"])
-            # 合并多个COLUMN VALUE
-            columns_value.append(column_value)
+                for data in datas:
+                    # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
+                    if self._message_switch and 'message' in data.get(
+                            'fields', dict()).keys():
+                        SQL_MSG, msgs_columns_value = self.fork_message(
+                            datas=data)
+                    for column in data.get('fields', dict()).values():
+                        # 构建COLUMN VALUE
+                        column_value.append(column.get('value', None))
+                    # 合并多个VALUE
+                    columns_value.append(column_value)
+                    # 初始化column_value，防止两个data的value混淆
+                    column_value = list()  # 单个COLUMN VALUE field
+                    column_value.append(timestamp)  # 固有的时间戳列
+                    column_value.append(id_)  # 固有的ID列
 
-            # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
-            if self._message_switch and 'message' in datas.get('fields', dict()).keys():
-                SQL_MSG, msgs_columns_value = self.fork_message(datas=datas)
+                # 构建SQL语句
+                SQL = (
+                    "INSERT INTO {schema_name}.{table_name} ({column_name}) "
+                    "VALUES ({column_value});".format(
+                        # SCHEMA.TABLE
+                        schema_name=schema,
+                        table_name=table,
+                        # COLUMN NAME
+                        column_name=columns_name,
+                        # COLUMN VALUE
+                        column_value=columns_value_mark))
+            else:
+                logger.error(
+                    'The following data does not meet the requirements '
+                    '(count: {count}): \n{data}'.format(count=1 - result,
+                                                        data=datas))
+        elif isinstance(datas, dict):
+            # 判断数据结构是否符合要求
+            result = checker(datas)
+            judge = True if result == 1 else False
+            if judge:
+                # schema.table value和timestamp/id value
+                schema = "{schema_name}".format(
+                    schema_name=datas.get('schema', 'public'))
+                table = "{table_name}".format(
+                    table_name=datas.get('table', 'example'))
+                timestamp = "{ts_field}".format(
+                    ts_field=datas.get('timestamp', '0000-00-00 08:00:00'))
+                id_ = "{id_name}".format(id_name=datas.get('deviceid', 'ID'))
+
+                # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
+                # # 构建COLUMN NAME（固有列）
+                columns_name = ",".join([self._column_ts, self._column_id])
+                # # 构建COLUMN VALUE
+                column_value.append(timestamp)  # 固有的时间戳列
+                column_value.append(id_)  # 固有的ID列
+                # # 构建COLUMN MARK
+                columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
+                # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
+                for column, data in datas.get('fields', dict()).items():
+                    # 完善COLUMN NAME
+                    columns_name = ",".join([columns_name, column])
+                    # 完善COLUMN VALUE
+                    if data.get('type', 'str') == 'json':
+                        value = json.dumps(data.get('value', None))
+                    else:
+                        value = data.get('value', None)
+                    column_value.append(value)
+                    # 完善COLUMN MARK
+                    columns_value_mark = ",".join([columns_value_mark, "%s"])
+                # 合并多个COLUMN VALUE
+                columns_value.append(column_value)
+
+                # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
+                if self._message_switch and 'message' in datas.get(
+                        'fields', dict()).keys():
+                    SQL_MSG, msgs_columns_value = self.fork_message(
+                        datas=datas)
+
+                # 构建SQL语句
+                SQL = (
+                    "INSERT INTO {schema_name}.{table_name} ({column_name}) "
+                    "VALUES ({column_value});".format(
+                        # SCHEMA.TABLE
+                        schema_name=schema,
+                        table_name=table,
+                        # COLUMN NAME
+                        column_name=columns_name,
+                        # COLUMN VALUE
+                        column_value=columns_value_mark))
+            else:
+                logger.error(
+                    'The following data does not meet the requirements '
+                    '(count: {count}): \n{data}'.format(count=1 - result,
+                                                        data=datas))
         else:
             logger.error("Data type error, 'datas' must be list or dict")
 
-        # 构建SQL语句
-        SQL = (
-            "INSERT INTO {schema_name}.{table_name} ({column_name}) "
-            "VALUES ({column_value});".format(
-                # SCHEMA.TABLE
-                schema_name=schema,
-                table_name=table,
-                # COLUMN NAME
-                column_name=columns_name,
-                # COLUMN VALUE
-                column_value=columns_value_mark))
-
-        # 执行SQL语句
         try:
+            # 执行SQL语句
             cursor = self._database.cursor()
 
             tag = 0
-            cursor.executemany(SQL, columns_value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=schema, table_name=table))
+            if SQL:
+                cursor.executemany(SQL, columns_value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=schema, table_name=table))
 
             tag = 1
             if SQL_MSG:
@@ -631,11 +712,13 @@ class PostgresqlWrapper(object):
                                    columns=columns)
             # 尝试再次写入数据
             cursor = self._database.cursor()
-            cursor.executemany(SQL, columns_value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=curr_schema, table_name=curr_table))
+            if SQL:
+                cursor.executemany(SQL, columns_value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=curr_schema,
+                                table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
@@ -666,11 +749,13 @@ class PostgresqlWrapper(object):
                             columns=columns)
             # 尝试再次写入数据
             cursor = self._database.cursor()
-            cursor.executemany(SQL, columns_value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=curr_schema, table_name=curr_table))
+            if SQL:
+                cursor.executemany(SQL, columns_value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=curr_schema,
+                                table_name=curr_table))
             if SQL_MSG:
                 cursor.executemany(SQL_MSG, msgs_columns_value)
                 self._database.commit()
@@ -698,12 +783,13 @@ class PostgresqlWrapper(object):
 
         try:
             # 执行SQL语句
-            cursor = self._database.cursor()
-            cursor.executemany(sql, value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=schema, table_name=table))
+            if sql:
+                cursor = self._database.cursor()
+                cursor.executemany(sql, value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=schema, table_name=table))
         except UndefinedTable as e:
             # 数据库中缺少指定Table，动态创建
             logger.error('Undefined table: {text}'.format(text=e))
@@ -715,12 +801,13 @@ class PostgresqlWrapper(object):
                                    columns=column_type)
 
             # 尝试再次执行SQL语句
-            cursor = self._database.cursor()
-            cursor.executemany(sql, value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=schema, table_name=table))
+            if sql:
+                cursor = self._database.cursor()
+                cursor.executemany(sql, value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=schema, table_name=table))
         except UndefinedColumn as e:
             # 数据表中缺少指定Column，动态创建
             logger.warning('Undefined column: {text}'.format(text=e))
@@ -728,12 +815,13 @@ class PostgresqlWrapper(object):
             self.add_column(schema=schema, table=table, columns=column_type)
 
             # 尝试再次执行SQL语句
-            cursor = self._database.cursor()
-            cursor.executemany(sql, value)
-            self._database.commit()
-            logger.info(
-                'Data inserted into ({schema_name}.{table_name}) successfully'.
-                format(schema_name=schema, table_name=table))
+            if sql:
+                cursor = self._database.cursor()
+                cursor.executemany(sql, value)
+                self._database.commit()
+                logger.info('Data inserted into '
+                            '({schema_name}.{table_name}) successfully'.format(
+                                schema_name=schema, table_name=table))
         except (OperationalError, InterfaceError):
             # 与数据库的连接断开，重新连接
             logger.error('Reconnect to the PostgreSQL...')
