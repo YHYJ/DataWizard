@@ -599,7 +599,7 @@ class PostgresqlWrapper(object):
                         # COLUMN VALUE
                         column_value=columns_value_mark))
             else:
-                logger.error(
+                logger.warning(
                     'The following data does not meet the requirements '
                     '(count: {count}): \n{data}'.format(count=1 - result,
                                                         data=datas))
@@ -658,7 +658,7 @@ class PostgresqlWrapper(object):
                         # COLUMN VALUE
                         column_value=columns_value_mark))
             else:
-                logger.error(
+                logger.warning(
                     'The following data does not meet the requirements '
                     '(count: {count}): \n{data}'.format(count=1 - result,
                                                         data=datas))

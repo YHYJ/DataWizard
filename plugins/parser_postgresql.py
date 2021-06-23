@@ -222,7 +222,7 @@ def parse_data(flow, config, datas):
                         column_name=columns_name,
                         column_value=column_value_mark))
             else:
-                logger.error(
+                logger.warning(
                     'The following data does not meet the requirements '
                     '(count: {count}): \n{data}'.format(count=1 - result,
                                                         data=datas))
@@ -279,7 +279,7 @@ def parse_data(flow, config, datas):
                         column_name=columns_name,
                         column_value=column_value_mark))
             else:
-                logger.error(
+                logger.warning(
                     'The following data does not meet the requirements '
                     '(count: {count}): \n{data}'.format(count=1 - result,
                                                         data=datas))
