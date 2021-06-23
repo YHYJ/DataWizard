@@ -160,7 +160,8 @@ def parse_data(flow, config, datas):
             columns_value.append(column_value)
 
             # 检索处理message数据
-            if message_switch and 'message' in datas['fields'].keys():
+            if message_switch and 'message' in datas.get('fields',
+                                                         dict()).keys():
                 message = fork_message(conf=db_conf, datas=datas)
         elif isinstance(datas, list):
             # 获取第一个dict的schem.table名、非空列名和数据字段
@@ -198,7 +199,8 @@ def parse_data(flow, config, datas):
                 columns_value.append(column_value)
 
                 # 检索处理message数据
-                if message_switch and 'message' in data['fields'].keys():
+                if message_switch and 'message' in data.get('fields',
+                                                            dict()).keys():
                     message = fork_message(conf=db_conf, datas=data)
         else:
             logger.error("Data type error, 'datas' must be list or dict")

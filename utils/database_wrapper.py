@@ -417,12 +417,13 @@ class PostgresqlWrapper(object):
         columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
         # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
         for column in self._message_column:
-            if column in datas['fields'].keys():
+            if column in datas.get('fields', dict()).keys():
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
                 # 完善COLUMN VALUE
-                column_value.append(datas['fields'][column].get(
-                    'value', str()))
+                column_value.append(
+                    datas.get('fields',
+                              dict()).get(column, dict()).get('value', str()))
                 # 完善COLUMN MARK
                 columns_value_mark = ",".join([columns_value_mark, "%s"])
 
@@ -499,9 +500,11 @@ class PostgresqlWrapper(object):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(
                 schema_name=datas[0].get('schema', 'public'))
-            table = "{table_name}".format(table_name=datas[0].get('table'))
-            timestamp = "{ts_field}".format(ts_field=datas[0].get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas[0].get('deviceid'))
+            table = "{table_name}".format(
+                table_name=datas[0].get('table', 'example'))
+            timestamp = "{ts_field}".format(
+                ts_field=datas[0].get('timestamp', '0000-00-00 08:00:00'))
+            id_ = "{id_name}".format(id_name=datas[0].get('deviceid', 'ID'))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -512,19 +515,19 @@ class PostgresqlWrapper(object):
             # # 构建COLUMN MARK
             columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
             # # 完善COLUMN NAME和COLUMN MARK
-            for column, data in datas[0]['fields'].items():
+            for column, data in datas[0].get('fields', dict()).items():
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
                 # 完善COLUMN MARK
                 columns_value_mark = ",".join([columns_value_mark, "%s"])
             # 完善COLUMN VALUE
             for data in datas:
-                # 检索处理message数据，如果允许其转储且'message'是data['fields']的key
-                if self._message_switch and 'message' in data['fields'].keys():
+                # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
+                if self._message_switch and 'message' in data.get('fields', dict()).keys():
                     SQL_MSG, msgs_columns_value = self.fork_message(datas=data)
-                for data in data['fields'].values():
+                for column in data.get('fields', dict()).values():
                     # 构建COLUMN VALUE
-                    column_value.append(data['value'])
+                    column_value.append(column.get('value', None))
                 # 合并多个VALUE
                 columns_value.append(column_value)
                 # 初始化column_value，防止两个data的value混淆
@@ -535,9 +538,11 @@ class PostgresqlWrapper(object):
             # schema.table value和timestamp/id value
             schema = "{schema_name}".format(
                 schema_name=datas.get('schema', 'public'))
-            table = "{table_name}".format(table_name=datas.get('table'))
-            timestamp = "{ts_field}".format(ts_field=datas.get('timestamp'))
-            id_ = "{id_name}".format(id_name=datas.get('deviceid'))
+            table = "{table_name}".format(
+                table_name=datas.get('table', 'example'))
+            timestamp = "{ts_field}".format(
+                ts_field=datas.get('timestamp', '0000-00-00 08:00:00'))
+            id_ = "{id_name}".format(id_name=datas.get('deviceid', 'ID'))
 
             # 构建COLUMN NAME、COLUMN VALUE和COLUMN MARK
             # # 构建COLUMN NAME（固有列）
@@ -548,7 +553,7 @@ class PostgresqlWrapper(object):
             # # 构建COLUMN MARK
             columns_value_mark = ",".join(["%s", "%s"])  # 固有的MARK（时间戳和ID）
             # # 完善COLUMN NAME、COLUMN VALUE和COLUMN MARK
-            for column, data in datas['fields'].items():
+            for column, data in datas.get('fields', dict()).items():
                 # 完善COLUMN NAME
                 columns_name = ",".join([columns_name, column])
                 # 完善COLUMN VALUE
@@ -562,8 +567,8 @@ class PostgresqlWrapper(object):
             # 合并多个COLUMN VALUE
             columns_value.append(column_value)
 
-            # 检索处理message数据，如果允许其转储且'message'是data['fields']的key
-            if self._message_switch and 'message' in datas['fields'].keys():
+            # 检索处理message数据，如果允许其转储且'message'是data.get('fields')的key
+            if self._message_switch and 'message' in datas.get('fields', dict()).keys():
                 SQL_MSG, msgs_columns_value = self.fork_message(datas=datas)
         else:
             logger.error("Data type error, 'datas' must be list or dict")
@@ -615,12 +620,12 @@ class PostgresqlWrapper(object):
             # # 根据datas的类型取到它的'fields'
             cache = datas if isinstance(datas, dict) else datas[0]
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            for key, value in cache['fields'].items():
+            for key, value in cache.get('fields', dict()).items():
                 if tag == 1:
                     if key in self._message_column:
-                        columns.update({key: value['type']})
+                        columns.update({key: value.get('type', 'str')})
                 else:
-                    columns.update({key: value['type']})
+                    columns.update({key: value.get('type', 'str')})
             self.create_hypertable(schema=curr_schema,
                                    hypertable=curr_table,
                                    columns=columns)
@@ -650,12 +655,12 @@ class PostgresqlWrapper(object):
             cache = datas if isinstance(datas, dict) else datas[0]
             columns = dict()
             # # 根据tag（指明了try中运行到哪一步）决定参数值
-            for key, value in cache['fields'].items():
+            for key, value in cache.get('fields', dict()).items():
                 if tag == 1:
                     if key in self._message_column:
-                        columns.update({key: value['type']})
+                        columns.update({key: value.get('type', 'str')})
                 else:
-                    columns.update({key: value['type']})
+                    columns.update({key: value.get('type', 'str')})
             self.add_column(schema=curr_schema,
                             table=curr_table,
                             columns=columns)
