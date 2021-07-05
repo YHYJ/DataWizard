@@ -1,4 +1,4 @@
-dbutils
-paho-mqtt
-psycopg2
-toml
+DBUtils==2.0.1
+paho-mqtt==1.5.1
+psycopg2==2.8.6
+toml==0.10.2
