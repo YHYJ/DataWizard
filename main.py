@@ -17,7 +17,9 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Process, Queue
+from multiprocessing import Process
+# 不能使用multiprocessing的Queue方法，因为它没有提供queue.clear()函数
+from queue import Queue
 
 import toml
 
@@ -39,8 +41,8 @@ class Wizard(object):
         """
         # [main] - Wizard配置
         main_conf = config.get('main', dict())
-        self.number = main_conf.get('number') if main_conf.get(
-            'number', 0) > os.cpu_count() + 4 else os.cpu_count() + 4
+        # # 线程池中每个topic的最大worker数，如果未配置则取值当前进程可用CPU核心数x2
+        self.number = main_conf.get('number', len(os.sched_getaffinity(0)) * 2)
 
         # [source] - 数据源配置
         source_conf = config.get('source', dict())
@@ -88,33 +90,39 @@ class Wizard(object):
 
         """
         while True:
-            queue = self.queue_dict.get(topic)
-            data_bytes = queue.get()
-            qsize = queue.qsize()
+            # 获取原始数据
+            topic_queue = self.queue_dict.get(topic, Queue())
+            data_bytes = topic_queue.get()
+            qsize = topic_queue.qsize()
             logger.info(
                 'Get data from queue ({topic}), queue size = {size}'.format(
                     topic=topic, size=qsize))
 
+            # 解析原始数据
             datas = self.convert(data_bytes)
-            #  result = parse_data(flow=self.storage_select,
-            #                      config=self.storage_conf,
-            #                      datas=datas)
+            result = parse_data(flow=self.storage_select,
+                                config=self.storage_conf,
+                                datas=datas)
+
+            # 持久化数据
             start_time = time.time()
-            self.database.insert_oldgen(datas)
-            #  for res in result:
-            #      if res:
-            #          self.database.insert(material=res)
+            for res in result:
+                if res:
+                    self.database.insert(material=res)
+            # self.database.insert_oldgen(datas)  # 旧版数据插入函数
             end_time = time.time()
             logger.info('Persistence time cost: {cost}s'.format(cost=end_time -
                                                                 start_time))
 
-            logger.info("Currently active thrends = {count}".format(
+            # 存活线程计数
+            logger.info("Currently active threads = {count}".format(
                 count=threading.active_count()))
 
+            # 队列大小限制
             if qsize >= self.cordon:
                 logger.error(
                     'Queue ({name}) is too big, empty it'.format(name=topic))
-                queue.queue.clear()
+                topic_queue.queue.clear()
 
     def start_source(self):
         """启动数据源客户端获取数据"""
@@ -122,14 +130,24 @@ class Wizard(object):
         if self.source_select.lower() in ['mqtt']:
             subscriber(queues=self.queue_dict)
 
-    def start_wizard(self):
-        """Main"""
+    def start_wizard_threadpool(self):
+        """启动持久化函数 -- 线程池版"""
         # 生成任务列表
         tasks = self.topics * self.number
         # max_workers大小和任务列表长度须一致，否则不能在一个周期内完成所有任务
         with ThreadPoolExecutor(max_workers=len(tasks),
                                 thread_name_prefix='Wizard') as executor:
             executor.map(self.persistence, tasks, chunksize=len(self.topics))
+
+    def start_wizard_thread(self):
+        """启动持久化函数 -- 多线程版"""
+        logger.info('Get data from {}'.format(self.source_select.upper()))
+        for topic in self.topics:
+            for num in range(1, self.number + 1):
+                task = threading.Thread(target=self.persistence,
+                                        args=(topic, ),
+                                        name='Wizard-{}'.format(num))
+                task.start()
 
 
 if __name__ == "__main__":
@@ -145,7 +163,7 @@ if __name__ == "__main__":
 
     # 创建并启动进程
     source = Process(target=wizard.start_source)
-    wizard = Process(target=wizard.start_wizard)
+    wizard = Process(target=wizard.start_wizard_threadpool)
     source.start()
     wizard.start()
     source.join()

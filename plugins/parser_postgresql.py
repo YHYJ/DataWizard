@@ -163,6 +163,7 @@ def parse_data(flow, config, datas):
     column_value = list()  # 单一dict中的列值组成的列表
     columns_value = list()  # 多个column_value组成的列表
     column_value_mark = str()  # 单一dict中的列值的占位字符串
+    message = dict()  # 报警信息字典
 
     # 如果数据流向PostgreSQL
     if flow.lower() in ['postgresql']:
@@ -286,17 +287,17 @@ def parse_data(flow, config, datas):
         else:
             logger.error("Data type error, 'datas' must be list or dict")
 
-        # 构建返回值
-        result = list()
+    # 构建返回值
+    result = list()
 
-        data = dict()
-        data['schema'] = schema
-        data['table'] = table
-        data['sql'] = SQL
-        data['value'] = columns_value
-        data['column'] = column_type
+    data = dict()
+    data['schema'] = schema
+    data['table'] = table
+    data['sql'] = SQL
+    data['value'] = columns_value
+    data['column'] = column_type
 
-        result.append(data)
-        result.append(message)
+    result.append(data)
+    result.append(message)
 
-        return result
+    return result
