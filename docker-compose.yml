@@ -17,11 +17,11 @@ services:
     command: 'python main.py'
     volumes:
       - '/etc/localtime:/etc/localtime'
-      - '$PWD/main.py:/opt/DataWizard/main.py'
-      - '$PWD/conf:/opt/DataWizard/conf'
-      - '$PWD/logs:/opt/DataWizard/logs'
-      - '$PWD/plugins:/opt/DataWizard/plugins'
-      - '$PWD/utils:/opt/DataWizard/utils'
+      - './main.py:/opt/DataWizard/main.py'
+      - './conf:/opt/DataWizard/conf'
+      - './logs:/opt/DataWizard/logs'
+      - './plugins:/opt/DataWizard/plugins'
+      - './utils:/opt/DataWizard/utils'
     networks:
       DataWizard: {}
     environment:
