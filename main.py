@@ -17,9 +17,8 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Process
-# 不能使用multiprocessing的Queue方法，因为它没有提供queue.clear()函数
-from queue import Queue
+# 因为使用了多进程，需要Queue进行跨进程通信，而queue.Queue是进程内通信队列
+from multiprocessing import Process, Queue
 
 import toml
 
@@ -61,7 +60,7 @@ class Wizard(object):
         storage_entity = storage_conf.get(storage_select.lower(), dict())
 
         # 根据topic数量动态构造数据缓存队列的字典
-        queues = [Queue() for _ in range(len(self.topics))]
+        queues = [Queue(maxsize=self.cordon) for _ in range(len(self.topics))]
         self.queue_dict = dict(zip(self.topics, queues))
 
         # 构建数据存储客户端
@@ -91,12 +90,13 @@ class Wizard(object):
         """
         while True:
             # 获取原始数据
-            topic_queue = self.queue_dict.get(topic, Queue())
+            topic_queue = self.queue_dict.get(topic,
+                                              Queue(maxsize=self.cordon))
             data_bytes = topic_queue.get()
-            qsize = topic_queue.qsize()
+            size = topic_queue.qsize()
             logger.info(
                 'Get data from queue ({topic}), queue size = {size}'.format(
-                    topic=topic, size=qsize))
+                    topic=topic, size=size))
 
             # 解析原始数据
             datas = self.convert(data_bytes)
@@ -106,10 +106,12 @@ class Wizard(object):
 
             # 持久化数据
             start_time = time.time()
+            # # 调用新版数据插入函数
             for res in result:
                 if res:
                     self.database.insert(material=res)
-            # self.database.insert_oldgen(datas)  # 旧版数据插入函数
+            # # 调用旧版数据插入函数
+            # self.database.insert_oldgen(datas)
             end_time = time.time()
             logger.info('Persistence time cost: {cost}s'.format(cost=end_time -
                                                                 start_time))
@@ -118,11 +120,10 @@ class Wizard(object):
             logger.info("Currently active threads = {count}".format(
                 count=threading.active_count()))
 
-            # 队列大小限制
-            if qsize >= self.cordon:
-                logger.error(
-                    'Queue ({name}) is too big, empty it'.format(name=topic))
-                topic_queue.queue.clear()
+            # 队列已满则阻塞
+            if topic_queue.full():
+                logger.error('Queue {name} is full, so it is blocking'.format(
+                    name=topic))
 
     def start_source(self):
         """启动数据源客户端获取数据"""
