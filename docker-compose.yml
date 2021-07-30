@@ -3,7 +3,8 @@
 # Email: yj1516268@outlook.com
 # Created Time: 2020-12-29 11:49:32
 
-# Description:
+# Description: 运行数据持久化程序DataWizard
+# yhyj/python-db_base-python-alpine镜像来自于https://github.com/YHYJ/MyDockerfile/tree/python-db_base-python-alpine
 
 version: '3'
 services:
