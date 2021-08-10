@@ -67,10 +67,10 @@ select= 'postgresql'                        # CHANGED: 数据存储选择，可�
 
 [log]                                       # 日志配置: 决定本程序日志格式和输出目标
 console = true                              # CHANGED: 是否要将log输出到STDOUT，只在调试时有用，正式部署时需要关闭
-console_level = 'DEBUG'                     # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+console_level = 'INFO'                      # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 file = true                                 # NOTE: 是否要将log输出到文件中
-file_level = 'INFO'                         # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+file_level = 'WARNING'                      # NOTE: 日志等级，可选值为'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 log_file = 'logs/log.log'                   # NOTE: log文件存储路径
-max_size = 10240000                         # NOTE: 单个log文件大小，单位KB
+max_size = 102400000                        # NOTE: 单个log文件大小，单位KB（默认100MB）
 backup_count = 10                           # NOTE: 最大log文件数
 format = '%(asctime)s | %(levelname)s | <%(threadName)s> %(module)s.%(funcName)s [%(lineno)d]: %(message)s'
