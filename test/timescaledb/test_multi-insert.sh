@@ -15,4 +15,4 @@ Depends:
 -
 !
 
-pgbench --host=localhost --port=5432 --user=postgres -M prepared -n -r -P 1 -f ./muilt_insert.sql -c 32 -j 32 -T 120
+pgbench --host=localhost --port=5432 --user=postgres -M prepared -n -r -P 1 -f ./multi_insert.sql -c 32 -j 32 -T 120

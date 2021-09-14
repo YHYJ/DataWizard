@@ -15,4 +15,4 @@ Depends:
 -
 !
 
-pgbench --host=localhost --port=5432 --username=postgres -M simple -n -r -P 1 -f ./test.sql -C -c 1 -j 1 -T 120
+pgbench --host=localhost --port=5432 --username=postgres -M simple -n -r -P 1 -f ./signal_insert.sql -C -c 1 -j 1 -T 120
