@@ -8,6 +8,7 @@ CHANGELOG
 
 <!-- vim-markdown-toc GFM -->
 
+* [v0.8.3](#v083)
 * [v0.8.2](#v082)
 * [v0.8.1](#v081)
 * [v0.8.0](#v080)
@@ -33,6 +34,13 @@ CHANGELOG
 更新日志
 
 ---
+
+## v0.8.3
+
+- 提示clientid不能重复问题
+- 调整日志参数
+- 修改compose文件不使用PWD变量
+- 从queue.Queue切换回multiprocessing.Queue: 多线程和多进程通信队列的区别
 
 ## v0.8.2
 
