@@ -38,6 +38,17 @@ TOPICS = mqtt_conf.get('topics', list())
 QOS = mqtt_conf.get('qos', 0)
 KEEPALIVE = mqtt_conf.get('keepalive', 60)
 
+# 错误码(reasonCode)及其含义
+RC_PHRASE = {
+    0: 'connection successful',
+    1: 'connection refused - incorrect protocol version',
+    2: 'connection refused - invalid client identifier',
+    3: 'connection refused - server unavailable',
+    4: 'connection refused - bad username or password',
+    5: 'connection refused - not authorised',
+    # 6-255: Currently unused
+}
+
 
 def __on_connect(client, userdata, flags, reasonCode):
     if reasonCode == 0:
@@ -111,22 +122,27 @@ def subscriber(queues):
 
     :queues: 队列字典，须topic和queue对应，例如：{'topic': Queue()}
     """
+
     def on_message(client, userdata, message):
+        # 获取实际topic名
         topic = message.topic
-        msg = message.payload
-        logger.info(
-            'Received message from ({topic}) topic'.format(topic=topic))
+        # 获取配置中的topic名（即队列名）
+        for queue_name in TOPICS:
+            msg = message.payload
+            logger.info(
+                'Received message from ({topic}) topic'.format(topic=topic))
 
-        topic_queue = queues.get(topic)
-        topic_queue.put(msg)
-        size = topic_queue.qsize()
-        logger.info('Put the message in the queue, queue size = {size}'.format(
-            size=size))
+            topic_queue = queues.get(queue_name)
+            topic_queue.put(msg)
+            size = topic_queue.qsize()
+            logger.info(
+                'Put the message in the queue, queue size = {size}'.format(
+                    size=size))
 
-        # 队列大小检测
-        if topic_queue.full():
-            logger.error(
-                'Queue {name} is full, so it is blocking'.format(name=topic))
+            # 队列大小检测
+            if topic_queue.full():
+                logger.error('Queue {name} is full, so it is blocking'.format(
+                    name=queue_name))
 
     client.on_message = on_message
     client.loop_start()

@@ -21,7 +21,7 @@ select= 'mqtt'                              # CHANGED: 数据源选择，可选�
     password = ''                           # CHANGED: 密码，mqtt允许匿名则留空
     clientid = 'DataWizard'                 # CHANGED: 客户端ID，为空则使用随机值。（Notice：如果多个DataWizard订阅同一个MQTT，则clientid不能相同）
     clean = false                           # NOTE: 是否清除连接会话，当clientid值为None、空字符串或随机值时必须为true
-    topics = ['topic', 'monitor']           # FIXME: 发布/订阅的主题列表，用于消息订阅
+    topics = ['topic/#']           # FIXME: 发布/订阅的主题列表，用于消息订阅
     qos = 0                                 # NOTE: 服务质量，可选值为：0, 1, 2
     keepalive = 60                          # NOTE: 心跳包发送时间间隔
 
@@ -31,7 +31,7 @@ cordon = 5000                               # CHANGED: 警戒线，数据队列�
 
 
 [storage]                                   # 数据存储配置
-select= 'postgresql'                        # CHANGED: 数据存储选择，可选值：'postgresql'
+select= 'po'                        # CHANGED: 数据存储选择，可选值：'postgresql'
     [storage.postgresql]                    # 数据存储器一
     host = '127.0.0.1'                      # CHANGED: PostgreSQL服务器地址
     port = 5432                             # CHANGED: PostgreSQL服务器端口
